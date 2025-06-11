@@ -3,7 +3,7 @@
 **StarterKit** is a baseline WordPress environment template built for rapid project initiation.  
 It provides a **preconfigured Docker-based infrastructure** and a **custom starter WordPress theme** designed for modern development workflow. The kit simplifies the handling of sensitive data, and supports flexible configuration across multiple environments.
 
-The **primary goal** is to **streamline the development and deployment process** for Developers and DevOps engineers — from local development to full-scale production.  
+The **primary goal** is to **streamline the development and deployment process** for Developers and DevOps engineers — from local to full-scale production.  
 The solution includes several integrated components — containers, scripts, and configuration layers — which automate repetitive tasks and enforce a standardized project structure.
 
 As a result, developers can **focus entirely on writing code**, instead of spending time configuring and maintaining the environment.
@@ -27,6 +27,6 @@ It is composed of two main parts:
 - **Quick start** – Spin up a full local WordPress stack with a single `make install` command. It builds containers, installs WordPress, dependencies, and initializes the database automatically.
 - **Absolute environment consistency** – All environments, local, development, staging, and production — run the exact same versions of software, services, infrastructure, and configuration. This eliminates the classic “works on my machine” problem and ensures predictable behavior across the entire lifecycle.
 - **Convenient configuration** – All parameters (application name, domains, ports, keys, etc.) live in layered `.env` files. Secrets are stored separately and generated automatically for improved security.
-- **Universal environment** – Containers cover the web server, PHP/WordPress, the database, plus helper services like Node.js, phpMyAdmin, and MailHog. This supports both developers (asset builds, live reload) and DevOps (DB management, backups, CI/CD).
+- **Universal environment** – Containers cover the web server, PHP/WordPress, the database, plus helper services like Node.js, phpMyAdmin, and MailHog. This supports both Developers (asset builds, live reload) and DevOps (DB management, backups, CI/CD).
 - **Integrated DevOps** – Terraform describes cloud infrastructure, while Ansible automates software installation on servers, applying the same configuration patterns on staging and production. CI/CD pipelines automate deployments — using the same patterns across all environments.
 - **Open-source & extensible** – Distributed under the MIT license and structured for community contributions. You can extend scripts and code to suit specific needs without breaking the core architecture.
