@@ -1,9 +1,9 @@
 # Overview
 
 **StarterKit** is a baseline WordPress environment template built for rapid project initiation.  
-It provides a **preconfigured Docker-based infrastructure** and a **custom starter WordPress theme** designed for modern development workflows. The kit simplifies the handling of sensitive data, and supports flexible configuration across multiple environments.
+It provides a **preconfigured Docker-based infrastructure** and a **custom starter WordPress theme** designed for modern development workflow. The kit simplifies the handling of sensitive data, and supports flexible configuration across multiple environments.
 
-The **primary goal** is to **streamline the development and deployment process** for developers and DevOps engineers — from local development to full-scale production.  
+The **primary goal** is to **streamline the development and deployment process** for Developers and DevOps engineers — from local development to full-scale production.  
 The solution includes several integrated components — containers, scripts, and configuration layers — which automate repetitive tasks and enforce a standardized project structure.
 
 As a result, developers can **focus entirely on writing code**, instead of spending time configuring and maintaining the environment.
