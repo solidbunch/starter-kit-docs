@@ -1,20 +1,20 @@
 # Overview
 
 **StarterKit** is a baseline WordPress environment template built for rapid project initiation.  
-It provides a **preconfigured Docker-based infrastructure** and a **custom starter WordPress theme** designed for modern development workflows. The kit simplifies the handling of **sensitive data**, and supports **flexible configuration** across multiple environments.
+It provides a **preconfigured Docker-based infrastructure** and a **custom starter WordPress theme** designed for modern development workflows. The kit simplifies the handling of sensitive data, and supports flexible configuration across multiple environments.
 
 The **primary goal** is to **streamline the development and deployment process** for developers and DevOps engineers — from local development to full-scale production.  
-The solution includes several integrated components — **containers**, **scripts**, and **configuration layers** — which **automate repetitive tasks** and **enforce a standardized project structure**.
+The solution includes several integrated components — containers, scripts, and configuration layers — which automate repetitive tasks and enforce a standardized project structure.
 
 As a result, developers can **focus entirely on writing code**, instead of spending time configuring and maintaining the environment.
 
-This stack combines **infrastructure** with a **custom WordPress theme featuring a fully integrated Bootstrap-based front-end**, supporting modern block-based editing (FSE) and SCSS/JS pipelines.  
+This stack combines **infrastructure** with a **custom WordPress theme++ featuring a fully integrated Bootstrap-based front-end, supporting modern block-based editing (FSE) and SCSS/JS pipelines.  
 It is composed of two main parts:
 
 - **StarterKit Foundation** – provides Dockerized infrastructure, secret management, and CI/CD automation tooling using Terraform, and GitHub Actions.
 - **StarterKit Theme** – a customizable block-based WordPress theme built with Composer, SCSS, Laravel Mix, and Bootstrap 5, ready for rapid front-end and back-end development.
 
-## Primary Goals
+## Main Goals
 
 - **Rapid setup** – Get a working WordPress site with Docker in minutes.
 - **Modern tooling** – Composer, Node.js, SCSS/JS compilation, and Carbon Fields is included out-of-the-box.
