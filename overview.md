@@ -12,7 +12,7 @@ This stack combines infrastructure with a custom WordPress theme featuring a ful
 It is composed of two main parts:
 
 - **StarterKit Foundation** – provides Dockerized infrastructure, secret management, and CI/CD automation tooling using Terraform, and GitHub Actions.
-- **StarterKit Theme** – a customizable block-based WordPress theme built with Composer, SCSS, Laravel Mix, and Bootstrap 5, ready for rapid front-end and back-end development.
+- **StarterKit Theme** – a customizable block-based WordPress theme built with Composer, SCSS, JSX, and Bootstrap 5, ready for rapid front-end and back-end development.
 
 ## Main Goals
 
