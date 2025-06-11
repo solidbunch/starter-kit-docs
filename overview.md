@@ -8,7 +8,7 @@ The solution includes several integrated components — containers, scripts, and
 
 As a result, developers can **focus entirely on writing code**, instead of spending time configuring and maintaining the environment.
 
-This stack combines **infrastructure** with a **custom WordPress theme++ featuring a fully integrated Bootstrap-based front-end, supporting modern block-based editing (FSE) and SCSS/JS pipelines.  
+This stack combines infrastructure with a custom WordPress theme featuring a fully integrated Bootstrap-based front-end, supporting modern block-based editing (FSE) and SCSS/JS pipelines.  
 It is composed of two main parts:
 
 - **StarterKit Foundation** – provides Dockerized infrastructure, secret management, and CI/CD automation tooling using Terraform, and GitHub Actions.
