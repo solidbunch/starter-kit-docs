@@ -14,11 +14,6 @@ Both workflows use the same simple process - `make install` builds containers, i
 3. [GNU Make](https://www.gnu.org/software/make/) - required to run project commands
 3. **Git**, [GitHub SSH key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) or [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
 
-Check your GitHub SSH access with command
-```
-ssh -T git@github.com
-```
-
 ## 2. Getting Started
 
 ### Option A: New Project
@@ -28,9 +23,6 @@ Clone the StarterKit Foundation repository into a new directory:
 ```bash
 git clone git@github.com:solidbunch/starter-kit-foundation.git my-new-project-folder
 ```
-
-> 📁 **Tip:** We recommend using the `/srv` folder instead of `/var/www` for your web content.\
-> This follows the [Filesystem Hierarchy Standard (FHS)](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s17.html), which suggests `/srv` for site-specific data served by the system.
 
 Customize your environment files in `config/environment/` folder:
 
@@ -49,6 +41,9 @@ git push -u origin main
 ```bash
 git clone git@github.com:<your-org>/<your-project>.git your-project
 ```
+
+> 📁 **Tip:** We recommend using the `/srv` folder instead of `/var/www` for your web content.\
+> This follows the [Filesystem Hierarchy Standard (FHS)](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s17.html), which suggests `/srv` for site-specific data served by the system.
 
 ---
 
@@ -97,150 +92,124 @@ This will use `config/environment/.env.type.prod`, applying values like `APP_DOM
 
 ## 4. Post-Installation
 
-To access the site:
+Once the installation is complete, your WordPress site is running inside Docker containers and ready to use.
 
-- Use the domain set in your `.env.type.local`
-- For `.localhost` domains: no manual setup required
-- For `.local` domains, map it in your hosts file:
+The site domain is defined in the `APP_DOMAIN` variable inside your active `.env.type.local` file.  
+To make it work locally, you must add it to your `/etc/hosts` file:
 
 ```plaintext
-127.0.0.1   myproject.local
+127.0.0.1 myproject.local
+```
+
+> 📁 **Tip:** Domains ending with `.localhost` do **not** require manual host mapping.
+
+To open the site in your browser:
+
+```
+http://myproject.local
+```
+
+Or access the admin panel directly:
+
+```
+http://myproject.local/wp-admin
+```
+
+Login credentials are printed in the terminal during `make install`, and also stored in `config/environment/.env.secret`:
+
+```dotenv
+WP_ADMIN_USER=admin
+WP_ADMIN_PASSWORD=...
 ```
 
 ---
 
-## 5. Optional: HTTPS
+## 5. Troubleshooting 🐞
 
-For staging/production mode:
+If something goes wrong during installation, make sure that:
 
-- Place certificates in `config/nginx/ssl/`
-- Set `APP_PROTOCOL=https` in your `.env.type.prod`
+- **Docker is running**
 
-More info: [Deployment and CI/CD](../12-deployment-and-cicd.md)
+  Check Docker status:
+
+  ```bash
+  docker info
+  ```
+
+  If Docker is not running, you'll see a connection error.
+
+- **Your SSH key has access to GitHub**
+
+  Verify SSH access to GitHub:
+
+  ```bash
+  ssh -T git@github.com
+  ```
+
+  You should see a message like:
+  `Hi <username>! You've successfully authenticated...`
+
+- **All required `.env.*` files are present and valid**
+
+  Ensure files like `.env.main`, `.env.secret`, `.env.type.*` exist and are correctly filled.
+
+    * `.env.secret` will only be generated if a valid template exists (`sh/env/.env.secret.template`)
+    * If needed, delete `.env` and rerun:
+
+      ```bash
+      make install
+      ```
+
+- **Required ports are available**
+
+  Make sure ports `80`, `443`, are not in use:
+
+  Check ports:
+
+  ```bash
+  sudo lsof -i :80
+  sudo netstat -tulpn | grep -E '80|443'
+  ```
+
+  If a port is occupied, you will see the process PID. To stop it:
+
+  ```bash
+  sudo kill <PID>
+  ```
+
+  Common error when a port is taken:
+
+  ```text
+  Error starting userland proxy: listen tcp 0.0.0.0:80: bind: address already in use
+  ```
+
+- **Check nginx logs for TLS or routing issues**
+
+  ```bash
+  make log nginx
+  ```
+
+- **Or check all docker logs**
+  ```bash
+  make log
+  ```
 
 ---
 
-## 6. Next Steps
+### Full Reset
 
-- Enable GitHub Actions via `.github/workflows/*.yml`
-- Use Terraform/Ansible from the `iac/` folder
-- Extend the theme: `web/wp-content/themes/starter-kit-theme/`
-- Harden production:
-   - Set `APP_DEBUG=0`
-   - Disable xDebug
-   - Tune `OPCACHE_*` in `config/php/*.ini`
-
----
-
-## 7. Troubleshooting
-
-- Make sure Docker is running
-- Review terminal output for any errors
-- Double-check all `.env.*` files for completeness
-- `.env.secret` requires a valid template to generate
-- You can delete `.env` and `.env.secret` and re-run `make install`
-
----
-
-### Common Issues
-
-- `make log nginx` reveals most TLS/routing problems
-- Ensure ports `80`, `443`, `3306`, `9003` are not occupied
-- For a clean slate:
+If issues persist, you can wipe everything and start clean:
 
 ```bash
 make docker clean
+```
+
+It will remove all Docker containers, images, and volumes related to this project.
+
+Then re-run the installation:
+
+```bash
 make install
 ```
 
-Still stuck? Open an issue and attach your full install log.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### Secret Management
-
-Secrets are generated automatically during installation using a template file:
-
-- Template path: `sh/env/.env.secret.template`
-- Variables in the template must use the placeholder `generate_this_pass`
-- During installation, the `secret-gen.sh` script replaces these placeholders with randomly generated secure values
-- The resulting `.env.secret` file is excluded from Git via `.gitignore`
-
-You do **not** need to manually create `.env.secret`. It is always generated based on the template.
-
-
-
-
-
-### 3. Post-Installation Access
-
-To access the site locally, ensure the domain used in `.env.type.local` resolves correctly.
-
-If you're using a `.local` domain:
-
-```plaintext
-127.0.0.1   myproject.local
-```
-
-Domains ending in `.localhost` are resolved automatically and require no manual setup.
-
-After installation, your WordPress site will be available at the specified domain (e.g. `http://myproject.localhost`).
-
----
-
-### 4. Optional Configuration: HTTPS
-
-For production or staging environments, you may want to enable HTTPS:
-
-- Place your TLS certificates in `config/nginx/ssl/`
-- Update `.env.type.prod` with `APP_PROTOCOL=https`
-
-More details are available in the [Deployment and CI/CD](../12-deployment-and-cicd.md) section.
-
----
-
-For using [PAT](#cicd-deployments) in run make secret, and add `COMPOSER_AUTH` to `.env.secret` 
-
-9. Next steps
-   Set up GitHub Actions — review .github/workflows/*.yml for CI/CD examples.
-
-Configure IaC — terraform / ansible samples live in iac/.
-
-Extend the theme — the bundled starter theme resides in web/wp-content/themes/starter-kit-theme/.
-
-Harden production — tighten APP_DEBUG, disable xDebug, tune OPCACHE_* env vars.
-
-
-### 5. Troubleshooting 🐞
-
-- Ensure Docker is running before executing `make install`
-- If the command fails, review the terminal logs for errors
-- Double-check the validity and completeness of all `.env.*` files
-- `.env.secret` will not be generated if the template file is missing
-- You can safely delete `.env`, `.env.secret`, and rerun the install
-
-
-Having trouble?
-make log nginx often reveals TLS or routing issues.
-
-Verify that ports 80/443/3306/9003 are free on your host.
-
-Delete everything (docker system prune -af) and re-run make install.
-
-If you still get stuck, open an issue and include your full make install output.
+If problems persist, open an issue and attach the full output of the `make install` command.
