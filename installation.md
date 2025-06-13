@@ -129,32 +129,49 @@ WP_ADMIN_PASSWORD=...
 If something goes wrong during installation, make sure that:
 
 - **Docker is running**
+    
+    Check Docker status:
+    
+    ```bash
+    docker info
+    ```
 
-  Check Docker status:
+    If Docker is not running, you'll see a connection error.
 
-  ```bash
-  docker info
-  ```
-
-  If Docker is not running, you'll see a connection error.
+    ```text
+    Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+    ```
 
 - **Your SSH key has access to GitHub**
 
-  Verify SSH access to GitHub:
+    Verify SSH access to GitHub:
+    
+    ```bash
+    ssh -T git@github.com
+    ```
+    
+    You should see a message like:
+    ```text
+    Hi <username>! You've successfully authenticated...
+    ```  
+  
+    Or error like:
+    
+    ```text
+    Permission denied (publickey).
+    ```
+    Or
+    ```text
+    fatal: Could not read from remote repository.
+    ``` 
 
-  ```bash
-  ssh -T git@github.com
-  ```
-
-  You should see a message like:
-  `Hi <username>! You've successfully authenticated...`
 
 - **All required `.env.*` files are present and valid**
 
   Ensure files like `.env.main`, `.env.secret`, `.env.type.*` exist and are correctly filled.
 
-    * `.env.secret` will only be generated if a valid template exists (`sh/env/.env.secret.template`)
-    * If needed, delete `.env` and rerun:
+    - `.env.secret` will only be generated if a valid template exists (`sh/env/.env.secret.template`)
+    - If needed, delete `.env` and rerun:
 
       ```bash
       make install
@@ -204,7 +221,7 @@ If issues persist, you can wipe everything and start clean:
 make docker clean
 ```
 
-It will remove all Docker containers, images, and volumes related to this project.
+It will remove all Docker containers, images, and volumes associated with this project - **excluding the database volume**, which is preserved to avoid data loss.
 
 Then re-run the installation:
 
