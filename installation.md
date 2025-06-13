@@ -5,7 +5,7 @@ There are two setup phases: initializing a new project and installing an existin
 - For new projects, clone the repository and configure your environment files.
 - For existing ones, just clone your project and run the installation.
 
-Both workflows use the same process:  
+Both workflows use the same simple process:  
 `make install` builds containers, installs dependencies, generates secrets, and bootstraps a ready-to-use WordPress stack.
 
 ## 1. Requirements
@@ -49,20 +49,18 @@ git clone git@github.com:<your-org>/<your-project>.git your-project
 
 ## 3. Install the Stack
 
-Run the installation:
-
 ```bash
 make install [environment_type]
 ```
 
-- If omitted, defaults to `local`
+- `environment_type` if omitted, defaults to `local`
 - `environment_type` must match a file in `config/environment/.env.type.*`
 
 ### What happens during installation
 
 1. If `.env.secret` is missing, it is generated from a template
-2. `.env.main`, `.env.type.[environment_type]`, and `.env.secret` are merged into root folder `.env`
-3. Docker containers are built and started
+2. `.env.main`, `.env.type.[environment_type]`, and `.env.secret` are merged into root folder `.env` file
+3. Docker containers are pulled and started
 4. Composer dependencies are installed (PHP)
 5. npm dependencies are installed (Node)
 6. Frontend assets are compiled via `npm run dev|prod`
