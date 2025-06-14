@@ -57,7 +57,8 @@ Host github.com
   IdentityFile ~/.ssh/id_rsa
 EOF
 ```
-  
+
+> 💡 **Tip:** If you already have a `~/.ssh/config` file, check it for existing GitHub entries to avoid duplicates.
 
 ### All required `.env.*` files are present and valid
 
@@ -92,6 +93,8 @@ If a port is occupied, you will see the process PID. To stop it:
 ```bash
 sudo kill <PID>
 ```
+
+> ⚠️ Note: Ensure no other local web server (e.g. Apache, MAMP, or LAMP) is running — it can block Docker from binding to required ports.
 
 ### Check nginx logs for TLS or routing issues
 

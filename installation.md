@@ -15,12 +15,12 @@ Clone this repository into a new directory:
 git clone git@github.com:solidbunch/starter-kit-foundation.git my-new-project-folder
 ```
 
-Customize your environment files in `config/environment/` folder:
+Customize environment variables by editing the `.env` files in the `config/environment/` folder:
 
 - `.env.main` – shared base config, edit `APP_NAME` and `APP_TITLE`
 - `.env.type.local`, `.env.type.dev`, `.env.type.stage`, `.env.type.prod` – environment-specific overrides, edit `APP_DOMAIN` variable.
 - You can create as many `.env.type.*` files as needed (`.env.type.qa`, `.env.type.stage2`, etc.)
-- Then initialize a new Git repository for your project and push changes
+- Then initialize a new Git repository for your project and push changes (optional)
 
 > 📁 **Tip:** We recommend using the `/srv` folder instead of `/var/www` for your web content.\
 > This follows the [Filesystem Hierarchy Standard (FHS)](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s17.html), which suggests `/srv` for site-specific data served by the system.
@@ -33,8 +33,7 @@ Customize your environment files in `config/environment/` folder:
 make install [environment_type]
 ```
 
-- `environment_type` if omitted, defaults to `local`
-- `environment_type` must match a file in `config/environment/.env.type.*`
+- `environment_type` if omitted, defaults to `local`, it must match a file in `config/environment/.env.type.*`
 
 ### What happens during installation
 
@@ -72,7 +71,7 @@ This will use `config/environment/.env.type.prod`, applying values like `APP_DOM
 
 ## 4. Post-Installation
 
-Once the installation is complete, your WordPress site is running inside Docker containers and ready to use.
+✅ Once the installation is complete, your WordPress site is running inside Docker containers and ready to use.
 
 The site domain is defined in the `APP_DOMAIN` variable inside your active `.env.type.local` file.  
 To make it work locally, you must add it to your `/etc/hosts` file:
@@ -81,7 +80,7 @@ To make it work locally, you must add it to your `/etc/hosts` file:
 127.0.0.1 myproject.local
 ```
 
-> **Tip:** Domains ending with `.localhost` do **not** require manual host mapping.
+> 💡 **Tip:** Domains ending with `.localhost` do **not** require manual host mapping.
 
 To open the site in your browser:
 
@@ -102,16 +101,8 @@ WP_ADMIN_USER=admin
 WP_ADMIN_PASSWORD=...
 ```
 
+Now you can start developing your theme and plugins, or customize the WordPress installation as needed.
+
 > 🔐 **Security Note:** The `.env.secret` file contains sensitive credentials and should not be committed to version control. It is generated automatically during installation and should be kept secure.
-
+> 
 > 🛠️ **Tip:** If you have any problems during installation, check the The [Troubleshooting](troubleshooting.md) section for common issues and solutions.
-
-## ✅ Installation Complete
-
-Your WordPress site is now up and running inside Docker containers.
-
-You can now:
-
-- Access the site: `http://myproject.local`
-- Log into the admin panel: `http://myproject.local/wp-admin`
-- Start developing your theme and plugins
