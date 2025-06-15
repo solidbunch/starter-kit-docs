@@ -33,7 +33,7 @@ Customize environment variables by editing the `.env` files in the `config/envir
 make install [environment_type]
 ```
 
-- `environment_type` if omitted, defaults to `local`, it must match a file in `config/environment/.env.type.*`
+`environment_type` if omitted, defaults to `local`, it must match a file in `config/environment/.env.type.*`
 
 ### What happens during installation
 
