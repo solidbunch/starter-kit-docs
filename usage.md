@@ -17,6 +17,8 @@ make watch
 
 This runs `npm run dev` inside the Node container with file watching enabled.
 
+Now you can start coding your theme or plugins. Next, let's cover the most common commands you will use during development.
+
 ---
 
 ## 2. Common Development Commands
@@ -59,14 +61,18 @@ What happens:
 
 ## 4. Run Commands Inside Containers
 
-```bash
-make run php                 # interactive shell (bash) in PHP-FPM
-make exec php wp plugin list # one-off WP-CLI command
-make run node                # interactive shell in Node
-```
+These commands let you work inside containers — either by starting a clean one-off shell or connecting to an already running service.
 
-* `make run <service>` opens an interactive shell.
-* `make exec <service>` runs a command directly.
+- `make run <service>` — starts a one-off container with an interactive shell (e.g. Composer or Node). Useful for isolated testing or when the container isn’t running. It rebuilds the image if needed and removes the container afterward.
+- `make exec <service>` — opens a shell inside an already running container (e.g. PHP or Nginx). Ideal for inspecting running services or executing WP‑CLI commands.
+
+Both commands run as www-data (from .env:DEFAULT_USER) and display a welcome message. The container user runs with the same UID as the host user to avoid permission issues on shared volumes.
+
+```bash
+make run php
+make exec php
+make run node
+```
 
 ---
 
@@ -78,56 +84,56 @@ make log nginx
 make log php
 ```
 
-Logs are available on the host system:
+These commands follow live logs from all services or specific ones like Nginx and PHP-FPM.
 
-| Path               | Contents                    |
-| ------------------ | --------------------------- |
-| `logs/nginx/*.log` | Access and error logs       |
-| `logs/php/*.log`   | PHP-FPM and WordPress debug |
+Logs are written to the host filesystem:
 
-> **Xdebug** is preinstalled. Enable it inside the PHP container with:
+| Path                          | Contents              |
+|-------------------------------|-----------------------|
+| `logs/nginx/*.log`            | Access and error logs |
+| `logs/wordpress/*.log`        | WordPress debug       |
+| `logs/wordpress/*XDEBUG*.log` | Xdebug logs           |
+
+
+> **Xdebug** is available in any environment where `xdebug.ini` is included.  
+> By default, it's configured in `config/php/local.d/xdebug.ini`, which is only mounted in the `local` environment.
 >
-> ```bash
-> make exec php bash -c "xdebug on"
-> ```
+> Xdebug is inactive by default.  
+> To activate debugging, profiling, and tracing, pass `XDEBUG_TRIGGER=1` as a query parameter, POST field, or HTTP header.
+>
+> Logs are written to `logs/php/xdebug-log.log` on the host.
+
 
 ---
 
-## 6. Database Helpers
+## 6. Asset Pipeline (Theme)
 
-| Task                  | Command                                 |
-| --------------------- | --------------------------------------- |
-| Dump current DB       | `make export` → `backups/latest.sql.gz` |
-| Import dump           | `make import path/to/dump.sql.gz`       |
-| Search & replace URLs | `make replace old.test new.local`       |
-
----
-
-## 7. Asset Pipeline (Theme)
+The theme uses **Laravel Mix** to compile JavaScript and Sass files. Assets are built inside the Node container.
 
 ```bash
 make run node
 cd web/wp-content/themes/starter-kit-theme
-npm install          # only once
-npm run dev          # dev build with source maps
-npm run prod         # minified production build
-```
+npm install      # only once (runs on `make install`)
+npm run dev      # development build with source maps
+npm run prod     # production build (minified, no maps)
 
-You can also use the shortcut:
+
+For development, you can use the command:
 
 ```bash
 make watch           # run dev build + file watcher inside container
 ```
 
-Compiled files are written to:
+Compiled assets are written to:
 
-```
-web/wp-content/themes/starter-kit-theme/dist/
-```
+- `web/wp-content/themes/starter-kit-theme/assets/build/styles/` — for global SCSS
+- `web/wp-content/themes/starter-kit-theme/assets/build/js/` and `assets/build/js/bootstrap/` — for global JS
+- `web/wp-content/themes/starter-kit-theme/blocks/<BlockName>/build/` — for block-specific JS and SCSS
+
 
 ---
 
-You’re now ready to code. See the next sections for extending the stack, managing environments, and theme development.
+
 
 
 
