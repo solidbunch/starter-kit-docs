@@ -91,8 +91,9 @@ Logs are written to the host filesystem:
 | Path                          | Contents              |
 |-------------------------------|-----------------------|
 | `logs/nginx/*.log`            | Access and error logs |
-| `logs/wordpress/*.log`        | WordPress debug       |
-| `logs/wordpress/*XDEBUG*.log` | Xdebug logs           |
+| `logs/wordpress/debug.log`    | WordPress debug       |
+| `logs/wordpress/*XDEBUG*.out` | Xdebug logs           |
+| `logs/letsencrypt/*.log`      | Certbot logs          |
 
 
 > **Xdebug** is available in any environment where `xdebug.ini` is included.  
@@ -101,7 +102,7 @@ Logs are written to the host filesystem:
 > Xdebug is inactive by default.  
 > To activate debugging, profiling, and tracing, pass `XDEBUG_TRIGGER=1` as a query parameter, POST field, or HTTP header.
 >
-> Logs are written to `logs/php/xdebug-log.log` on the host.
+> Logs are written to `logs/wordpress/xdebug-log.log` on the host.
 
 
 ---
@@ -112,11 +113,14 @@ The theme uses **Laravel Mix** to compile JavaScript and Sass files. Assets are 
 
 ```bash
 make run node
-cd web/wp-content/themes/starter-kit-theme
+```
+
+```bash
+cd wp-content/themes/starter-kit-theme
 npm install      # only once (runs on `make install`)
 npm run dev      # development build with source maps
 npm run prod     # production build (minified, no maps)
-
+```
 
 For development, you can use the command:
 
