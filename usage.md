@@ -1,142 +1,134 @@
-## Usage 🚀
+# Usage
 
-The project is ready to use immediately after installation, but you can stop, recreate, and launch the containers in different environments.
+⏱️ Start Coding in 1 Minute
 
-Below are the most common commands to help you spin things up and keep them running.
+The StarterKit ships with a **Makefile** that wraps every Docker Compose and shell command you need for daily development. This chapter shows the exact steps to go from a fresh install to writing PHP, JS, and CSS in your theme or plugins.
 
 ---
 
-### 1. Boot the stack
+## 1. After Installation
+
+After installation, all containers are already running — there's nothing else to start manually.
+To begin compiling front-end assets, just run:
 
 ```bash
-# Local (default)
-make up
-
-# Specific environment type
-make up stage         # stage as defined in ./config/environment/.env.type.stage
-make up prod          # production
+make watch
 ```
 
-`make up` is a thin wrapper around `docker compose up -d`.
+This runs `npm run dev` inside the Node container with file watching enabled.
 
 ---
 
-### 2. Working inside containers
+## 2. Common Development Commands
 
-| Task                      | Command                                                           |
-| ------------------------- | ----------------------------------------------------------------- |
-| Drop into any service     | `make run <service>` <br>e.g. `make run php`                      |
-| Execute a one‑off command | `make exec <service> <cmd>` <br>e.g. `make exec php wp user list` |
-| View logs                 | `make log` or `make log nginx`                                    |
-| Stop everything           | `make down`                                                       |
-| Restart (keeps data)      | `make restart`                                                    |
-| Recreate images           | `make recreate`                                                   |
+> All available `make` targets are documented in [Makefile Reference](#) (coming soon).
 
-All source code is volume‑mounted, so edits on your host appear instantly inside PHP‑FPM and Nginx.
-
----
-
-### 3. Managing environment variables & secrets
-
-1. **Environment type**  Each file in `config/environment/.env.type.*` describes one *type* (local, stage, prod…).  The installer concatenates the chosen file with `.env.secret.<type>.local` to produce the root `.env`.
-
-2. **Private secrets**  Add sensitive keys to `.env.secret.<type>.local` *after* installation.
-
-   ```dotenv
-   # .env.secret.local
-   DB_PASSWORD=supersecret
-   JWT_AUTH_SECRET_KEY=generate_this_pass
-   ```
-
-3. **Regenerate the root file**
-
-   ```bash
-   make secret          # or bash sh/env/secret-gen.sh
-   ```
-
-> **Warning**: never commit secrets—GitHub will flag them and CI will fail.
+| Command              | Under the hood                          | Description                            |
+|----------------------|-----------------------------------------|----------------------------------------|
+| `make up`            | `docker compose up -d`                  | Start all services in detached mode    |
+| `make down`          | `docker compose down`                   | Stop containers and remove networks    |
+| `make restart`       | `docker compose restart`                | Quick services restart                 |
+| `make recreate`      | `docker compose up -d --force-recreate` | Recreate containers to reapply configs |
+| `make log`           | `docker compose logs -f`                | Tail logs from all or one service      |
 
 ---
 
-### 4. Composer, WP‑CLI & NPM
-
-Run CLI tools from inside their dedicated containers:
+## 3. Start the Environment
 
 ```bash
-# PHP Composer
-make run composer        # opens a bash shell
-composer install         # now inside the container
+make up [environment]
+```
 
-# WP‑CLI
-make exec php wp plugin list
+`environment` is optional and defaults to `local`. You can also use `stage` or `prod` to load the appropriate config.
 
-# Node / NPM (theme assets)
+Examples:
+
+```bash
+make up              # local environment (default)
+make up stage        # uses .env.type.stage
+make up prod         # uses .env.type.prod
+```
+
+What happens:
+
+* Docker images are pulled from the registry (unless cached) and containers are started.
+* The selected `.env.type.*` is merged into the final `.env` file.
+* WordPress is available at `http://<APP_DOMAIN>`.
+
+---
+
+## 4. Run Commands Inside Containers
+
+```bash
+make run php                 # interactive shell (bash) in PHP-FPM
+make exec php wp plugin list # one-off WP-CLI command
+make run node                # interactive shell in Node
+```
+
+* `make run <service>` opens an interactive shell.
+* `make exec <service>` runs a command directly.
+
+---
+
+## 5. Logs & Debugging
+
+```bash
+make log
+make log nginx
+make log php
+```
+
+Logs are available on the host system:
+
+| Path               | Contents                    |
+| ------------------ | --------------------------- |
+| `logs/nginx/*.log` | Access and error logs       |
+| `logs/php/*.log`   | PHP-FPM and WordPress debug |
+
+> **Xdebug** is preinstalled. Enable it inside the PHP container with:
+>
+> ```bash
+> make exec php bash -c "xdebug on"
+> ```
+
+---
+
+## 6. Database Helpers
+
+| Task                  | Command                                 |
+| --------------------- | --------------------------------------- |
+| Dump current DB       | `make export` → `backups/latest.sql.gz` |
+| Import dump           | `make import path/to/dump.sql.gz`       |
+| Search & replace URLs | `make replace old.test new.local`       |
+
+---
+
+## 7. Asset Pipeline (Theme)
+
+```bash
 make run node
-npm run watch            # hot‑reloading dev build
-npm run build            # production assets (minified, RTL, source‑maps off)
+cd web/wp-content/themes/starter-kit-theme
+npm install          # only once
+npm run dev          # dev build with source maps
+npm run prod         # minified production build
 ```
 
-The theme lives in `web/wp-content/themes/starter-kit-theme/` and ships with **Laravel Mix 6**; feel free to swap it for Vite or your preferred bundler.
-
----
-
-### 5. Database utilities
-
-| Command                    | Purpose                                                 |
-| -------------------------- | ------------------------------------------------------- |
-| `make export`              | Dump the current DB to `./backups/latest.sql.gz`.       |
-| `make import <file>`       | Import a dump into the running MySQL service.           |
-| `make replace <old> <new>` | `wp search-replace` wrapper—useful after a domain move. |
-
-For one‑offs you can also enter the MySQL client:
+You can also use the shortcut:
 
 ```bash
-make exec mariadb mysql -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME"
+make watch           # run dev build + file watcher inside container
+```
+
+Compiled files are written to:
+
+```
+web/wp-content/themes/starter-kit-theme/dist/
 ```
 
 ---
 
-### 6. Asset & code quality tooling
+You’re now ready to code. See the next sections for extending the stack, managing environments, and theme development.
 
-* **PHP** – `composer lint` runs PHP\_CodeSniffer with WordPress rules.
-* **JS/CSS** – ESLint, Stylelint, and Prettier are pre‑configured; run `npm run lint`.
-* **CI** – GitHub Actions lint every PR; see `.github/workflows/workflow-code-qa.yml`.
 
----
 
-### 7. Logs & debugging
 
-| Path / URL                          | Description                                    |
-| ----------------------------------- | ---------------------------------------------- |
-| `logs/nginx/*.log` (host)           | Access & error logs, rotated daily.            |
-| `logs/php/*.log` (host)             | PHP‑FPM, WP debug, and Xdebug traces.          |
-| `/tools/opcache.php`                | CLI to inspect and reset OPCache (local only). |
-| `make exec php bash -c "xdebug on"` | Enable live Xdebug inside the PHP container.   |
-
-Set `WP_DEBUG=true` in the relevant `.env.type.*` to surface WordPress notices.
-
----
-
-### 8. Extending the stack
-
-The starter kit exposes a single **Docker Compose override point**: `docker-compose.build.yml`. Drop additional services (Redis, Elasticsearch, etc.) there and reference them from `docker-compose.yml` where needed.
-
-Terraform + Ansible playbooks live in `iac/` and assume an Ubuntu 22.04 target. Run `terraform apply` to provision a new VPS, then `ansible-playbook site.yml` to push the container stack.
-
----
-
-### 9. Typical workflow recap
-
-```text
-git clone git@github.com:your-org/your-site.git
-cd your-site
-make install         # once
-make up              # start containers
-make run node        # compile assets
-code .               # hack away
-make export          # dump DB before pushing
-git commit -am "Feature: …"
-```
-
-You are now ready to **develop features, build assets, and ship** with confidence. 
-Jump to the next chapter to learn how to **customise the Starter Kit theme**—hooks, service container, block registration, and more.

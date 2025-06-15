@@ -1,5 +1,7 @@
 # Installation
 
+⏱️ Start Coding in 5 Minutes
+
 ## 1. Requirements
 
 1. [Docker Engine](https://docs.docker.com/engine/install/) v24+
