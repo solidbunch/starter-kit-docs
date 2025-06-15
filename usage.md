@@ -17,7 +17,7 @@ make watch
 
 This runs `npm run dev` inside the Node container with file watching enabled.
 
-Now you can start coding your theme or plugins. Next, let's cover the most common commands you will use during development.
+**Now you can start coding your theme or plugins. Next, let's cover the most common commands you will use during development**.
 
 ---
 
