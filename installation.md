@@ -1,6 +1,6 @@
 # Installation
 
-⏱️ Start Coding in 5 Minutes
+*⏱️ Start Coding in 5 Minutes*
 
 ## 1. Requirements
 

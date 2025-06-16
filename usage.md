@@ -1,6 +1,6 @@
 # Usage
 
-⏱️ Start Coding in 1 Minute
+*⏱️ Start Coding in 1 Minute*
 
 The StarterKit ships with a **Makefile** that wraps every Docker Compose and shell command you need for daily development. This chapter shows the exact steps to go from a fresh install to writing PHP, JS, and CSS in your theme or plugins.
 
