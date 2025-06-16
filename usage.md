@@ -23,7 +23,7 @@ This runs `npm run dev` inside the Node container with file watching enabled.
 
 ## 2. Common Development Commands
 
-> All available `make` targets are documented in [Makefile Reference](#) (coming soon).
+> All available `make` targets are documented in [Makefile Reference](makefile-reference.md) (coming soon).
 
 | Command              | Under the hood                          | Description                            |
 |----------------------|-----------------------------------------|----------------------------------------|
