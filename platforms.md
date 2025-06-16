@@ -48,32 +48,35 @@ brew install make git
 
 ### Step-by-Step Setup
 
-1. **Install WSL2**
-   Follow [Microsoft’s official guide](https://learn.microsoft.com/en-us/windows/wsl/install) to install WSL2 and set up a Linux distribution (e.g., Ubuntu).
+#### 1. Install WSL2
+
+Follow [Microsoft’s official guide](https://learn.microsoft.com/en-us/windows/wsl/install) to install WSL2 and set up a Linux distribution (e.g., Ubuntu).
 
 
-2. **Install Docker in WSL**
+#### 2. Install Docker in WSL
 
 **Do not use Docker Desktop for Windows** it is not supported.
 
 Install Docker Engine **directly inside WSL**. See [Docker in WSL2](https://docs.docker.com/engine/install/ubuntu/). This includes Docker Compose v2.
 
-3. **Verify Docker Access** Run:
+#### 3. Verify Docker Access
 
-   ```bash
-   docker version
-   ```
+Run:
 
-   If you see version info, Docker is working.
+```bash
+docker version
+```
 
-4. **Install Dependencies inside WSL**
+If you see version info, Docker is working.
 
-   Open a WSL terminal and run:
+#### 4. Install Dependencies inside WSL
 
-   ```bash
-   sudo apt update
-   sudo apt install make git
-   ```
+Open a WSL terminal and run:
+
+```bash
+sudo apt update
+sudo apt install make git
+```
 
 ### ⚠️ Important Notes
 
