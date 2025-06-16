@@ -2,9 +2,9 @@
 
 Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.
 
-### 🔐 Production & Staging
+## 🔐 Production & Staging
 
-1. **Enable HTTPS in environment:**
+### 1. Enable HTTPS in environment:
 
 Set the protocol in your production or staging environment file:
 
@@ -12,35 +12,35 @@ Set the protocol in your production or staging environment file:
 APP_PROTOCOL=https
 ```
 
-2. **Issue TLS Certificates via Let’s Encrypt:**
+### 2. Issue TLS Certificates via Let’s Encrypt:
 
-   Run the built-in Certbot script:
+Run the built-in Certbot script:
 
-   ```bash
-   make ssl
-   ```
+```bash
+make ssl
+```
 
-   This will:
+This will:
 
-    * Read `APP_DOMAIN` from `.env`
+- Read `APP_DOMAIN` from `.env`
 
-    * Temporarily stop NGINX
+- Temporarily stop NGINX
 
-    * Run Certbot in standalone mode (`port 80` must be open publicly)
+- Run Certbot in standalone mode (`port 80` must be open publicly)
 
-    * Save certificate files to:
+- Save certificate files to:
 
-      ```
-      config/ssl/live/<your-domain>/fullchain.pem
-      config/ssl/live/<your-domain>/privkey.pem
-      ```
+  ```
+  config/ssl/live/<your-domain>/fullchain.pem
+  config/ssl/live/<your-domain>/privkey.pem
+  ```
 
-    * Restart NGINX with HTTPS enabled
+- Restart NGINX with HTTPS enabled
 
-   > ℹ️ If the certificate already exists, the script skips renewal.
-   > ⚠️ Ensure `port 80` is open and not blocked by a firewall or ISP.
+> ℹ️ If the certificate already exists, the script skips renewal.
+> ⚠️ Ensure `port 80` is open and not blocked by a firewall or ISP.
 
-3. **Manual Certificates (optional):**
+### 3. Manual Certificates (optional):
 
    You may manually place your certificates at:
 
@@ -51,11 +51,11 @@ APP_PROTOCOL=https
 
 ---
 
-### 🧪 Local Development
+## 🧪 Local Development
 
 Let’s Encrypt does **not** issue certificates for local domains like `.localhost`. Use self-signed certificates instead.
 
-#### Option 1: mkcert (recommended)
+### Option 1: mkcert (recommended)
 
 Install [`mkcert`](https://github.com/FiloSottile/mkcert) and run:
 
@@ -95,7 +95,7 @@ make up
 
 > 📌 Local HTTPS support assumes your domain matches the certificate. Adjust your `/etc/hosts` accordingly.
 
-#### Option 2: Manual Self-Signed Certificates
+### Option 2: Manual Self-Signed Certificates
 
 Generate self-signed certificates using OpenSSL:
 
@@ -116,7 +116,7 @@ This creates a self-signed certificate valid for 365 days.
 
 ---
 
-### ↻ Switching to HTTPS
+## ↻ Switching to HTTPS and redirects
 
 The NGINX setup supports both HTTP and HTTPS, with automatic redirection configured via:
 
