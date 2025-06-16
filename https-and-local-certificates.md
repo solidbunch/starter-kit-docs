@@ -2,7 +2,7 @@
 
 Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.
 
-## 🔐 Production & Staging
+## Production & Staging
 
 **1. Enable HTTPS in environment:**
 
@@ -26,7 +26,7 @@ This will:
 
 - Temporarily stop NGINX
 
-- Run Certbot in standalone mode (`port 80` must be open publicly)
+- Run 🔐 Certbot in standalone mode (`port 80` must be open publicly)
 
 - Save certificate files to:
 
