@@ -4,7 +4,7 @@ Secure your environment with HTTPS using self-signed certificates for local deve
 
 ## 🔐 Production & Staging
 
-### 1. Enable HTTPS in environment:
+**1. Enable HTTPS in environment:**
 
 Set the protocol in your production or staging environment file:
 
@@ -12,7 +12,7 @@ Set the protocol in your production or staging environment file:
 APP_PROTOCOL=https
 ```
 
-### 2. Issue TLS Certificates via Let’s Encrypt:
+**2. Issue TLS Certificates via Let’s Encrypt:**
 
 Run the built-in Certbot script:
 
@@ -40,7 +40,7 @@ This will:
 > ℹ️ If the certificate already exists, the script skips renewal.
 > ⚠️ Ensure `port 80` is open and not blocked by a firewall or ISP.
 
-### 3. Manual Certificates (optional):
+**3. Manual Certificates (optional):**
 
    You may manually place your certificates at:
 
@@ -51,7 +51,7 @@ This will:
 
 ---
 
-## 🧪 Local Development
+## Local Development
 
 Let’s Encrypt does **not** issue certificates for local domains like `.localhost`. Use self-signed certificates instead.
 
