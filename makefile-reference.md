@@ -17,34 +17,34 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 
 ## Targets
 
-| Make Target      | Command                                               | Description                                 |
-|------------------|-------------------------------------------------------|---------------------------------------------|
-| **install**      | `sh/system/install.sh`                                | One‑shot install                            |
-| **i**            | `make install`                                        | Alias                                       |
-| **secret**       | `sh/env/secret-gen.sh`                                | Create `.env.secret`                        |
-| **env**          | `sh/env/init.sh $(PARAMS)`                            | Re‑build the root `.env` from layered parts |
-| **certbot**      | `sh/system/certbot.sh $(PARAMS)`                      | Obtain or renew Let’s Encrypt certificates  |
-| **ssl**          | `make certbot`                                        | Alias                                       |
-| **core-install** | `wp-cli/core-install.sh`                              | Idempotent WordPress core install           |
-| **watch**        | `sh/dev/npm-watch.sh $(PARAMS)`                       | Front‑end watch with BrowserSync            |
-| **up**           | `docker compose up -d --build`                        | Start (or rebuild) containers, detached     |
-| **upd**          | `docker compose up --build`                           | Same, foreground                            |
-| **down**         | `docker compose down -v`                              | Stop containers and drop named volumes      |
-| **restart**      | `docker compose restart`                              | Quick service restart                       |
-| **recreate**     | `docker compose up --build --force-recreate`          | Rebuild & replace every container           |
-| **import**       | `sh/database/import.sh -f $(PARAM1)`                  | Import SQL dump and fix URLs                |
-| **export**       | `sh/database/export.sh`                               | Dump current DB to `db/backups/`            |
-| **replace**      | `wp search-replace $(PARAMS)`                         | One‑off search/replace                      |
-| **migrate**      | `sh/system/migrate.sh -s $(PARAM1) -d $(PARAM2)`      | Push/pull DB between environments           |
-| **pma**          | `docker compose run phpmyadmin`                       | Throw‑away phpMyAdmin session               |
-| **mailhog**      | `docker compose run mailhog`                          | MailHog UI for local SMTP                   |
-| **log**          | `docker compose logs -f $(PARAMS)`                    | Tail service logs                           |
-| **run**          | `sh/dev/run.sh run $(PARAMS)`                         | Run an ad‑hoc script in PHP container       |
-| **exec**         | `sh/dev/run.sh exec $(PARAMS)`                        | Shortcut for `docker compose exec`          |
-| **lint**         | `composer lint && npm run lint`                       | PHP & JS linters inside containers          |
-| **terraform**    | `terraform -chdir=iac/terraform $(PARAMS)`            | Terraform helpers                           |
-| **ansible**      | `ansible-playbook iac/ansible/playbook.yml $(PARAMS)` | Provision or deploy with Ansible            |
-| **docker**       | `sh/system/docker.sh $(PARAMS)`                       | Build, push, clean project images           |
+| Make Target      | Usage                                      | Command                                               | Description                             |
+|------------------|--------------------------------------------|-------------------------------------------------------|-----------------------------------------|
+| **install**      | `make install [environment_type]`          | `sh/system/install.sh`                                | One‑shot install                        |
+| **i**            | `make i`                                   | `make install`                                        | Alias                                   |
+| **secret**       | `make secret`                              | `sh/env/secret-gen.sh`                                | Create `.env.secret`                    |
+| **env**          | `make env [environment_type]`              | `sh/env/init.sh $(PARAMS)`                            | Re‑build the root `.env` from parts     |
+| **certbot**      | `make certbot`                             | `sh/system/certbot.sh $(PARAMS)`                      | Obtain or renew SSL certificates        |
+| **ssl**          | `make ssl`                                 | `make certbot`                                        | Alias                                   |
+| **core-install** | `make core-install`                        | `wp-cli/core-install.sh`                              | Idempotent WordPress core install       |
+| **watch**        | `make watch`                               | `sh/dev/npm-watch.sh $(PARAMS)`                       | Front‑end watch with BrowserSync        |
+| **up**           | `make up [environment_type]`               | `docker compose up -d --build`                        | Start (or rebuild) containers, detached |
+| **upd**          | `make upd [environment_type]`              | `docker compose up --build`                           | Same, foreground                        |
+| **down**         | `make down`                                | `docker compose down -v`                              | Stop containers and drop named volumes  |
+| **restart**      | `make restart [environment_type]`          | `docker compose restart`                              | Quick service restart                   |
+| **recreate**     | `make recreate [environment_type]`         | `docker compose up --build --force-recreate`          | Rebuild & replace every container       |
+| **import**       | `make import <file.sql>`                   | `sh/database/import.sh -f $(PARAM1)`                  | Import SQL dump and fix URLs            |
+| **export**       | `make export`                              | `sh/database/export.sh`                               | Dump current DB to `db/backups/`        |
+| **replace**      | `make replace [search] [replace]`          | `wp search-replace $(PARAMS)`                         | Database search/replace                 |
+| **migrate**      | `make migrate <source> <dest>`             | `sh/system/migrate.sh -s $(PARAM1) -d $(PARAM2)`      | Push/pull DB between environments       |
+| **pma**          | `make pma`                                 | `docker compose run phpmyadmin`                       | Throw‑away phpMyAdmin session           |
+| **mailhog**      | `make mailhog`                             | `docker compose run mailhog`                          | MailHog UI for local SMTP               |
+| **log**          | `make log [service]`                       | `docker compose logs -f $(PARAMS)`                    | Tail service logs                       |
+| **run**          | `make run <service>`                       | `sh/dev/run.sh run $(PARAMS)`                         | Starts a one-off container with shell   |
+| **exec**         | `make exec <service>`                      | `sh/dev/run.sh exec $(PARAMS)`                        | Opens a shell in running container      |
+| **lint**         | `make lint`                                | `composer lint && npm run lint`                       | PHP & JS linters inside containers      |
+| **terraform**    | `make terraform <command>`                 | `terraform -chdir=iac/terraform $(PARAMS)`            | Terraform helpers                       |
+| **ansible**      | `make ansible <command>`                   | `ansible-playbook iac/ansible/playbook.yml $(PARAMS)` | Provision or deploy with Ansible        |
+| **docker**       | `make docker build\|push\|clean [service]` | `sh/system/docker.sh $(PARAMS)`                       | Build, push, clean project images       |
 
 ---
 
