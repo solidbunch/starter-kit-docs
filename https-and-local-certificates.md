@@ -6,11 +6,11 @@ Secure your environment with HTTPS using self-signed certificates for local deve
 
 1. **Enable HTTPS in environment:**
 
-   Set the protocol in your production or staging environment file:
+Set the protocol in your production or staging environment file:
 
-   ```dotenv
-   APP_PROTOCOL=https
-   ```
+```dotenv
+APP_PROTOCOL=https
+```
 
 2. **Issue TLS Certificates via Let’s Encrypt:**
 
@@ -78,7 +78,10 @@ config/ssl/live/myproject.localhost/fullchain.pem
 config/ssl/live/myproject.localhost/privkey.pem
 ```
 
-Then update your local `.env`:
+Then update your local environment type file at `config/environment/.env.type.local`, or create an override file at  
+`config/environment/.env.type.local.override`.
+
+> ➡️ See [Environment Configuration](environment-configuration.md) for details.
 
 ```dotenv
 APP_PROTOCOL=https
@@ -91,6 +94,25 @@ make up
 ```
 
 > 📌 Local HTTPS support assumes your domain matches the certificate. Adjust your `/etc/hosts` accordingly.
+
+#### Option 2: Manual Self-Signed Certificates
+
+Generate self-signed certificates using OpenSSL:
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout config/ssl/live/myproject.localhost/privkey.pem \
+  -out config/ssl/live/myproject.localhost/fullchain.pem \
+  -subj "/CN=myproject.localhost"
+```
+
+This creates a self-signed certificate valid for 365 days.
+
+> ⚠️ Self-signed certificates will trigger browser warnings. You can bypass them for local development.
+> To avoid warnings, you can add the self-signed certificate to your system's trusted certificates store.
+> 
+> See [Letsencrypt Documentation](https://letsencrypt.org/docs/certificates-for-localhost/) for more details on using self-signed certificates locally.
+>
 
 ---
 

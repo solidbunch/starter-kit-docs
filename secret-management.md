@@ -1,4 +1,4 @@
-# Secret Management
+# Environment Configuration and Secret Management
 
 Secrets are generated automatically during installation using a template file:
 
