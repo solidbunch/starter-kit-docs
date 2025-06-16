@@ -81,7 +81,7 @@ config/ssl/live/myproject.localhost/privkey.pem
 Then update your local environment type file at `config/environment/.env.type.local`, or create an override file at  
 `config/environment/.env.type.local.override`.
 
-> ➡️ See [Environment Configuration](environment-configuration.md) for details.
+> ➡️ See [Environment Configuration and Secret Management](environment-and-secrets.md) for details.
 
 ```dotenv
 APP_PROTOCOL=https
