@@ -74,8 +74,8 @@ myproject.localhost-key.pem
 Rename and copy them to:
 
 ```
-config/nginx/ssl/myproject.localhost/fullchain.pem
-config/nginx/ssl/myproject.localhost/privkey.pem
+config/ssl/live/myproject.localhost/fullchain.pem
+config/ssl/live/myproject.localhost/privkey.pem
 ```
 
 Then update your local `.env`:
