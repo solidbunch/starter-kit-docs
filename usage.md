@@ -134,9 +134,36 @@ Compiled assets are written to:
 - `web/wp-content/themes/starter-kit-theme/assets/build/js/` and `assets/build/js/bootstrap/` — for global JS
 - `web/wp-content/themes/starter-kit-theme/blocks/<BlockName>/build/` — for block-specific JS and SCSS
 
-
 ---
 
+## 7. Composer (PHP Packages)
+
+To use PHP Composer, run the Composer container:
+
+```bash
+make run composer
+```
+
+This starts an interactive shell inside a dedicated Composer container, with access to the full project volume.
+
+Once inside, you can run any Composer command. By default, you're placed in `/srv` — the root of your project.
+
+Typical commands:
+
+```bash
+composer install      # install dependencies from composer.lock
+composer update       # update dependencies and regenerate lockfile
+composer outdated     # check for newer package versions
+```
+
+If you need to run Composer commands inside a theme or plugin folder, just change into that directory:
+
+```bash
+cd web/wp-content/themes/starter-kit-theme
+composer install
+```
+
+> The Composer container is ephemeral — it starts and stops per command, ensuring a clean, reproducible environment each time.
 
 
 
