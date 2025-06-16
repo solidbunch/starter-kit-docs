@@ -4,10 +4,12 @@
 
 ## 1. Requirements
 
-1. [Docker Engine](https://docs.docker.com/engine/install/) v24+
-2. [Docker Compose](https://docs.docker.com/compose/install/) v2.21+
-3. [GNU Make](https://www.gnu.org/software/make/) - required to run project commands
+1. [Docker Engine](https://docs.docker.com/engine/install/) v24+ (includes Compose v2)
+2. [GNU Make](https://www.gnu.org/software/make/) - required to run project commands
 3. [Git](https://git-scm.com/downloads), [GitHub SSH key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) or [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+
+> 🖥️ **Supported Platforms:** macOS, Linux, and Windows (with [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install)) are supported. See [Platform Notes](platforms.md) for details.
+
 
 ## 2. Getting Started
 
