@@ -9,9 +9,9 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | Name                          | Meaning                                                                                                                      |
 |-------------------------------|------------------------------------------------------------------------------------------------------------------------------|
 | `CURRENT_UID` / `CURRENT_GID` | Host user and group IDs (forced to **1000** on macOS). Injected into containers so generated files retain correct ownership. |
-| `PARAMS`                      | Everything you type **after** the target — `make up stage` — forwarded to the called script.                                 |
-| `PARAM1…PARAM3`               | Shortcuts for the first three extra words.                                                                                   |
-| `DEFAULT_USER`                | WP‑CLI user read from `.env.main`.                                                                                           |
+| `PARAMS`                      | Everything you type **after** the target — `make <target> [params...]` — forwarded to the called script.                     |
+| `PARAM1…PARAM3`               | Shortcuts for the first three extra words — `make <target> [param1] [param2] [param3]`.                                      |
+| `DEFAULT_USER`                | Docker user name read from `.env.main`, in result have `CURRENT_UID` and `CURRENT_GID`, so same IDs as Host user             |
 
 ---
 
