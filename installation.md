@@ -6,25 +6,36 @@
 
 1. [Docker Engine](https://docs.docker.com/engine/install/) v24+ (includes Compose v2)
 2. [GNU Make](https://www.gnu.org/software/make/) - required to run project commands
-3. [Git](https://git-scm.com/downloads), [GitHub SSH key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) or [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+3. [Git](https://git-scm.com/downloads) - for version control and cloning the repository
 
 > 🖥️ **Supported Platforms:** macOS, Linux, and Windows (with [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install)) are supported. See [Platform Notes](platforms.md) for details.
 
 
 ## 2. Getting Started
 
-Clone this repository into a new directory:
+The easiest way to begin is by **creating your own GitHub repository based on this StarterKit**:
+
+➡️ [**Click here to generate a new project repository →**](https://github.com/solidbunch/starter-kit-foundation/generate)
+
+> **What does this mean?**
+> You’re not just running the StarterKit — you’re starting **your own WordPress project**, with your own Git history, configuration, and custom code.
+> By clicking the link above, GitHub will copy this boilerplate into a new repository under your account. That becomes your clean project — ready to clone, customize, and deploy.
+> This is ideal for both new builds and migrating legacy sites into a modern environment.
+
+> ⚡️ Need a quick StarterKit exploration without creating a GitHub repo, or don’t want to use a template? See: [Advanced Installation Options](install-advanced.md)
+
+Once your new repository is created, clone it locally:
 
 ```bash
-git clone git@github.com:solidbunch/starter-kit-foundation.git my-new-project-folder
+git clone https://github.com/your-org/your-project.git
+cd your-project
 ```
 
-Customize environment variables by editing the `.env` files in the `config/environment/` folder:
+➡️ **Customize environment variables** by editing the `.env` files in the `config/environment/` folder:
 
 - `.env.main` – shared base config, edit `APP_NAME` and `APP_TITLE`
 - `.env.type.local`, `.env.type.dev`, `.env.type.stage`, `.env.type.prod` – environment-specific overrides, edit `APP_DOMAIN` variable.
 - You can create as many `.env.type.*` files as needed (`.env.type.qa`, `.env.type.stage2`, etc.)
-- Then initialize a new Git repository for your project and push changes (optional)
 
 > 📁 **Tip:** We recommend using the `/srv` folder instead of `/var/www` for your web content.\
 > This follows the [Filesystem Hierarchy Standard (FHS)](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s17.html), which suggests `/srv` for site-specific data served by the system.

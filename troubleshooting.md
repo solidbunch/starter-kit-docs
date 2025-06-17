@@ -134,3 +134,92 @@ make install
 ```
 
 If problems persist, open an issue and attach the full output of the command.
+
+## Composer install/update fails with `Could not delete wp-core/wp-content`
+
+**Symptom:**
+
+Running:
+```bash
+make run composer
+composer install/update
+```
+
+fails with an error similar to:
+
+```text
+Could not delete /srv/web/wp-core/wp-content: 
+Install of solidbunch/wordpress-core failed
+```
+
+**Cause:**
+
+The `php` container is running and holds a lock on the `web/wp-core/wp-content` directory. Composer cannot replace the `solidbunch/wordpress-core` package while this directory exists.
+
+**Resolution:**
+
+Stop all running containers:
+
+```bash
+make down
+```
+
+Delete the empty `web/wp-core/wp-content` directory:
+
+```bash
+rm -r web/wp-core/wp-content
+```
+
+> ⚠️ Make sure the directory is empty before deleting.
+> The command will fail if it's not empty — this is intentional.
+
+
+Run Composer again:
+
+```bash
+composer update
+```
+
+## Stop and remove all running containers
+
+**Symptom:**
+
+* containers are running but unresponsive,
+* source files were deleted or changed outside Docker,
+* volumes are out of sync,
+* `make` commands no longer work as expected.
+
+**Cause:**
+
+The Docker environment may be in an inconsistent state — for example, containers are still running but no longer match the current project structure.
+
+**Resolution:**
+
+```bash
+docker ps -a
+docker stop $(docker ps -q)
+docker rm $(docker ps -aq)
+```
+
+(Optional) Also remove dangling volumes if necessary:
+
+```bash
+docker volume prune
+```
+
+Or
+```bash
+make docker prune
+```
+
+GitHub API limit (60 calls/hr) is exhausted, could not fetch https://api.github.com/repos/solidbunch/starter-kit-theme/contents/composer.json?ref=724fec0abf049941b48bd2b7efc292a1ffc7f9e1. Create a GitHub OAuth token to go over the API rate limit. You can also wait until 2025-06-17 16:57:27 for the rate limit to reset.
+
+When working with _public_ GitHub repositories only, head here to retrieve a token:
+https://github.com/settings/tokens/new?scopes=&description=Composer+on+c309d9a51f82+2025-06-17+1600
+This token will have read-only permission for public information only.
+When you need to access _private_ GitHub repositories as well, go to:
+https://github.com/settings/tokens/new?scopes=repo&description=Composer+on+c309d9a51f82+2025-06-17+1600
+Note that such tokens have broad read/write permissions on your behalf, even if not needed by Composer.
+Tokens will be stored in plain text in "/home/www-data/.composer/auth.json" for future use by Composer.
+For additional information, check https://getcomposer.org/doc/articles/authentication-for-private-packages.md#github-oauth
+Token (hidden): 
