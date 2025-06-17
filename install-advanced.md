@@ -12,6 +12,19 @@ You can generate a new GitHub repository using this Starter Kit as a base:
 
 > This method creates a fresh project under your account with its own Git history. Ideal for clean starts, production projects, or migrating legacy sites into a modern stack.
 
+After generating, clone your new repository:
+
+```bash
+git clone https://github.com/your-org/your-project.git
+```
+
+And install the stack (following the same steps as in the main installation guide):
+
+```bash
+cd your-project
+make install
+```
+
 ---
 
 ### 2. Clone via SSH
@@ -21,6 +34,17 @@ git clone git@github.com:solidbunch/starter-kit-foundation.git my-project
 ```
 
 ✅ Requires [SSH key setup](https://docs.github.com/en/authentication/connecting-to-github-with-ssh). Recommended for teams and long-term development workflows.
+
+After cloning, create a new Git repository and update the remote origin:
+
+```bash
+rm -rf .git                                                          # Remove existing Git history
+git init                                                             # Initialize a new Git repository
+git remote add origin git@github.com:your-username/your-project.git  # Add your new remote repository
+```
+
+This converts the StarterKit into your own standalone project — with a fresh Git history, ready to develop and deploy.
+
 
 ---
 
@@ -37,10 +61,10 @@ git clone git@github.com:solidbunch/starter-kit-foundation.git my-project
 ### 4. Composer
 
 ```bash
-composer create-project solidbunch/starter-kit my-project
+composer create-project solidbunch/starter-kit-foundation my-project
 ```
 
-✅ Requires PHP and Composer. Suitable for CI/CD and PHP-centric workflows.
+✅ Requires PHP and Composer. Suitable for CI/CD and PHP-centric workflows. Check required PHP version and Composer version in the [StarterKit's `composer.json`](https://github.com/solidbunch/starter-kit-foundation/blob/master/composer.json)
 
 ---
 
