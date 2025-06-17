@@ -133,7 +133,7 @@ Then re-run the installation:
 make install
 ```
 
-If problems persist, open an issue and attach the full output of the command.
+---
 
 ## Composer install/update fails with `Could not delete wp-core/wp-content`
 
@@ -180,6 +180,8 @@ Run Composer again:
 composer update
 ```
 
+---
+
 ## Stop and remove all running containers
 
 **Symptom:**
@@ -212,14 +214,39 @@ Or
 make docker prune
 ```
 
-GitHub API limit (60 calls/hr) is exhausted, could not fetch https://api.github.com/repos/solidbunch/starter-kit-theme/contents/composer.json?ref=724fec0abf049941b48bd2b7efc292a1ffc7f9e1. Create a GitHub OAuth token to go over the API rate limit. You can also wait until 2025-06-17 16:57:27 for the rate limit to reset.
+---
 
-When working with _public_ GitHub repositories only, head here to retrieve a token:
-https://github.com/settings/tokens/new?scopes=&description=Composer+on+c309d9a51f82+2025-06-17+1600
-This token will have read-only permission for public information only.
-When you need to access _private_ GitHub repositories as well, go to:
-https://github.com/settings/tokens/new?scopes=repo&description=Composer+on+c309d9a51f82+2025-06-17+1600
-Note that such tokens have broad read/write permissions on your behalf, even if not needed by Composer.
-Tokens will be stored in plain text in "/home/www-data/.composer/auth.json" for future use by Composer.
-For additional information, check https://getcomposer.org/doc/articles/authentication-for-private-packages.md#github-oauth
-Token (hidden): 
+## GitHub API limit (60 calls/hr) is exhausted
+
+**Problem:**
+Composer fails to fetch dependencies because the unauthenticated GitHub API rate limit (60 requests/hour) has been exceeded.
+
+**Solutions:**
+
+Generate a token at [https://github.com/settings/tokens](https://github.com/settings/tokens) (no scopes needed).
+
+Add it to a secret environment file:
+
+In `.env.secret`:
+
+```env
+COMPOSER_AUTH={"github-oauth":{"github.com":"XXXXX"}}
+```
+
+
+Or Use SSH instead of HTTPS:
+
+If you have SSH access set up:
+
+```json
+{
+ "type": "vcs",
+ "url": "git@github.com:solidbunch/starter-kit-theme.git"
+}
+```
+
+This avoids GitHub API calls entirely and always uses `git clone`.
+
+---
+
+If problems persist, open an issue and attach the full output of the command.
