@@ -25,13 +25,13 @@ This runs `npm run dev` inside the Node container with file watching enabled.
 
 > ➡️ All available `make` targets are documented in [Makefile Reference](makefile-reference.md).
 
-| Command              | Under the hood                          | Description                            |
-|----------------------|-----------------------------------------|----------------------------------------|
-| `make up`            | `docker compose up -d`                  | Start all services in detached mode    |
-| `make down`          | `docker compose down`                   | Stop containers and remove networks    |
-| `make restart`       | `docker compose restart`                | Quick services restart                 |
-| `make recreate`      | `docker compose up -d --force-recreate` | Recreate containers to reapply configs |
-| `make log`           | `docker compose logs -f`                | Tail logs from all or one service      |
+| Command           | Under the hood                          | Description                            |
+|-------------------|-----------------------------------------|----------------------------------------|
+| **make up**       | `docker compose up -d`                  | Start all services in detached mode    |
+| **make down**     | `docker compose down`                   | Stop containers and remove networks    |
+| **make restart**  | `docker compose restart`                | Quick services restart                 |
+| **make recreate** | `docker compose up -d --force-recreate` | Recreate containers to reapply configs |
+| **make log**      | `docker compose logs -f`                | Tail logs from all or one service      |
 
 ---
 

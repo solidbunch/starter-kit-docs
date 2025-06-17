@@ -8,9 +8,6 @@ If you prefer not to use the GitHub template flow, or you're working in a restri
 
 ```bash
 git clone https://github.com/solidbunch/starter-kit-foundation.git my-project
-cd my-project
-rm -rf .git
-git init
 ```
 
 ✅ **Works without SSH keys.** Best for quick setup and full control of code.

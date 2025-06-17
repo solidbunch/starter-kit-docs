@@ -22,7 +22,7 @@ The easiest way to begin is by **creating your own GitHub repository based on th
 > By clicking the link above, GitHub will copy this boilerplate into a new repository under your account. That becomes your clean project — ready to clone, customize, and deploy.
 > This is ideal for both new builds and migrating legacy sites into a modern environment.
 
-> ⚡️ Need a quick StarterKit exploration without creating a GitHub repo, or don’t want to use a template? See: [Advanced Installation Options](install-advanced.md)
+> ⚡️ Need a quick exploration without creating a repo, or don’t want to use a template? See: [Advanced Installation Options](install-advanced.md)
 
 Once your new repository is created, clone it locally:
 
