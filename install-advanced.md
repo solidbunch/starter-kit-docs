@@ -4,7 +4,7 @@ If you prefer not to use the default git clone flow, or you're working in a rest
 
 ---
 
-### 1. Create a New GitHub Repository (Template)
+### 1. Scaffold a New GitHub Repository (Template)
 
 You can generate a new GitHub repository using this Starter Kit as a base:
 

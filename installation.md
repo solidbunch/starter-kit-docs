@@ -12,7 +12,7 @@
 
 ## 2. Getting Started
 
-> ⚡️ Looking to start a new WordPress project, not just clone this StarterKit? See: [Advanced Installation Options](install-advanced.md). You'll generate your own repository with independent Git history and configuration — a clean foundation ready to customize and deploy.
+> ⚡️ Looking to scaffold a new WordPress project, not just clone this StarterKit? See: [Advanced Installation Options](install-advanced.md). You'll generate your own repository with independent Git history and configuration — a clean foundation ready to customize and deploy.
 
 
 **Clone the repository:**
