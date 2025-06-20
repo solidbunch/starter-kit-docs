@@ -19,7 +19,7 @@ It is composed of two main parts:
 - **Rapid setup** – Get a working WordPress site with Docker in minutes.
 - **Modern tooling** – Composer, Node.js, SCSS/JS compilation, and Carbon Fields is included out-of-the-box.
 - **Environment parity** – The same code and containers run locally, on staging, and in production.
-- **Built-in DevOps** – Terraform, and GitHub Actions pipelines automate infrastructure provisioning and deployments.
+- **Built-in DevOps** – Preconfigured Terraform and GitHub Actions pipelines handle infrastructure and deployments out of the box — no setup required.
 - **Extensibility** – Open-source (MIT) and designed for easy customization.
 
 ## Key Advantages
@@ -28,5 +28,5 @@ It is composed of two main parts:
 - **Absolute environment consistency** – All environments, local, development, staging, and production — run the exact same versions of software, services, infrastructure, and configuration. This eliminates the classic “works on my machine” problem and ensures predictable behavior across the entire lifecycle.
 - **Convenient configuration** – All parameters (application name, domains, ports, keys, etc.) live in layered `.env` files. Secrets are stored separately and generated automatically for improved security.
 - **Universal environment** – Containers cover the web server, PHP/WordPress, the database, plus helper services like Node.js, phpMyAdmin, and MailHog. This supports both Developers (asset builds, live reload) and DevOps (DB management, backups, CI/CD).
-- **Integrated DevOps** – Terraform describes cloud infrastructure, while Ansible automates software installation on servers, applying the same configuration patterns on staging and production. CI/CD pipelines automate deployments — using the same patterns across all environments.
+- **Integrated DevOps** – Everything is ready to use: Terraform defines cloud infrastructure, Ansible configures the servers, and CI/CD pipelines automatically deploy to staging and production — using the same setup across all environments.
 - **Open-source & extensible** – Distributed under the MIT license and structured for community contributions. You can extend scripts and code to suit specific needs without breaking the core architecture.
