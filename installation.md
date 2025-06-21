@@ -8,11 +8,11 @@
 2. [GNU Make](https://www.gnu.org/software/make/) - required to run project commands
 3. [Git](https://git-scm.com/downloads) - for version control and cloning the repository
 
-> 🖥️ **Supported Platforms:** macOS, Linux, and Windows (with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)). See [Platform Notes](platforms.md) for details.
+> 🖥️ **Supported Platforms:** macOS, Linux, and Windows (with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)). See [Platform Notes](platform-notes.md) for details.
 
 ## 2. Getting Started
 
-> ⚡️ Looking to scaffold a new WordPress project, not just clone this StarterKit? See: [Advanced Installation Options](install-advanced.md). You'll generate your own repository with independent Git history and configuration — a clean foundation ready to customize and deploy.
+> ⚡️ Looking to scaffold a new WordPress project, not just clone this StarterKit? See: [Advanced Installation Options](advanced-installation-options.md). You'll generate your own repository with independent Git history and configuration — a clean foundation ready to customize and deploy.
 
 
 **Clone the repository:**

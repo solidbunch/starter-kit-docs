@@ -43,7 +43,7 @@
 6. Environment Configuration
 7. Secret Management
 8. HTTPS & Local Certificates
-9. Working with Containers
+9. Docker images
 10. Database & Backup
 11. Theme Development
 12. Custom Gutenberg Blocks
