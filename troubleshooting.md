@@ -249,4 +249,46 @@ This avoids GitHub API calls entirely and always uses `git clone`.
 
 ---
 
+## 🛠️ Docker Disk Troubleshooting
+
+### Quick Checks
+
+```bash
+docker system df          # Overall Docker usage summary  
+docker ps -s              # Container sizes incl. writable layer (logs)  
+docker images             # Image sizes  
+docker volume ls          # List volumes  
+docker volume prune       # Remove unused volumes  
+docker builder prune      # Clean build cache  
+docker system prune -a    # Remove all unused images, containers, networks
+```
+
+---
+
+### Check Log Path (Linux)
+
+```bash
+docker inspect --format='{{.LogPath}}' <container_id>  
+ls -lh /var/lib/docker/containers/<container_id>/*-json.log
+```
+
+---
+
+### Check Log Path (Mac)
+
+```bash
+docker inspect --format='{{.LogPath}}' <container_id>
+# Direct file access limited (logs stored inside Docker Desktop VM)
+```
+
+---
+
+### System Disk Usage
+
+```bash
+df -h                     # Overall disk usage
+```
+
+---
+
 If problems persist, open an issue and attach the full output of the command.
