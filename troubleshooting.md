@@ -281,6 +281,24 @@ docker inspect --format='{{.LogPath}}' <container_id>
 # Direct file access limited (logs stored inside Docker Desktop VM)
 ```
 
+### Check log rotation options
+
+`/etc/docker/daemon.json` should contain log rotation settings:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "10"
+  }
+}
+```
+
+```bash
+docker inspect <container-name> --format '{{.HostConfig.LogConfig}}'
+```
+
 ---
 
 ### System Disk Usage
