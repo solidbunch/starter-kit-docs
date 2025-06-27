@@ -291,4 +291,31 @@ df -h                     # Overall disk usage
 
 ---
 
+## 🛠️ MariaDB Troubleshooting
+
+### Crash recovery failed: Bad magic header in tc log
+
+**Error:**
+
+```
+[ERROR] Bad magic header in tc log
+[ERROR] Crash recovery failed.
+[ERROR] Can't init tc log
+[ERROR] Aborting
+```
+
+**Cause:** Corrupted `tc.log` (Transaction Coordinator Log) file.
+
+**Solution (safe if you don't use XA transactions):**
+
+```bash
+make down
+sudo rm -rf db-data/tc.log
+make up
+```
+
+MariaDB will recreate `tc.log` on the next start.
+
+---
+
 If problems persist, open an issue and attach the full output of the command.
