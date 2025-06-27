@@ -281,6 +281,8 @@ docker inspect --format='{{.LogPath}}' <container_id>
 # Direct file access limited (logs stored inside Docker Desktop VM)
 ```
 
+---
+
 ### Check log rotation options
 
 `/etc/docker/daemon.json` should contain log rotation settings:
