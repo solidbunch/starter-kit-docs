@@ -28,7 +28,7 @@ After `composer install` or `composer update`, the post scripts defined in `comp
 
 These steps ensure WordPress core receives the required config after dependency operations.
 
-**Container note:** Composer runs in a dedicated container separate from PHP/NGINX.
+**Container note:** Composer runs in a dedicated container separate from PHP/NGINX. See [Docker Images](docker-images.md) for Container Architecture information
 
 ## 🏗️ Project Structure & Dependencies
 
@@ -44,11 +44,11 @@ These steps ensure WordPress core receives the required config after dependency 
 ### Custom Installer Paths
 ```json
 "installer-paths": {
-  "kit-modules/{$name}/": ["type:kit-module"],
-  "web/wp-core/": ["type:wordpress-core"],
-  "web/wp-content/mu-plugins/{$name}": ["type:wordpress-muplugin"],
-  "web/wp-content/plugins/{$name}": ["type:wordpress-plugin"],
-  "web/wp-content/themes/{$name}": ["type:wordpress-theme"]
+"kit-modules/{$name}/": ["type:kit-module"],
+"web/wp-core/": ["type:wordpress-core"],
+"web/wp-content/mu-plugins/{$name}": ["type:wordpress-muplugin"],
+"web/wp-content/plugins/{$name}": ["type:wordpress-plugin"],
+"web/wp-content/themes/{$name}": ["type:wordpress-theme"]
 }
 ```
 
@@ -117,8 +117,8 @@ composer run post-update-cmd
 ### Package Installation Preferences
 ```json
 "preferred-install": {
-  "solidbunch/starter-kit-theme": "source",
-  "*": "dist"
+"solidbunch/starter-kit-theme": "source",
+"*": "dist"
 }
 ```
 - **Source**: Custom packages installed from source code
@@ -127,8 +127,8 @@ composer run post-update-cmd
 ### Security & Permissions
 ```json
 "allow-plugins": {
-  "composer/installers": true,
-  "solidbunch/composer-installers": true
+"composer/installers": true,
+"solidbunch/composer-installers": true
 }
 ```
 - Explicitly allows custom installer plugins
