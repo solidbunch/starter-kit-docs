@@ -44,11 +44,11 @@ These steps ensure WordPress core receives the required config after dependency 
 ### Custom Installer Paths
 ```json
 "installer-paths": {
-"kit-modules/{$name}/": ["type:kit-module"],
-"web/wp-core/": ["type:wordpress-core"],
-"web/wp-content/mu-plugins/{$name}": ["type:wordpress-muplugin"],
-"web/wp-content/plugins/{$name}": ["type:wordpress-plugin"],
-"web/wp-content/themes/{$name}": ["type:wordpress-theme"]
+  "kit-modules/{$name}/": ["type:kit-module"],
+  "web/wp-core/": ["type:wordpress-core"],
+  "web/wp-content/mu-plugins/{$name}": ["type:wordpress-muplugin"],
+  "web/wp-content/plugins/{$name}": ["type:wordpress-plugin"],
+  "web/wp-content/themes/{$name}": ["type:wordpress-theme"]
 }
 ```
 
@@ -98,6 +98,8 @@ composer run update-prod
 composer run switch-theme-dev
 ```
 
+**CI-only**: in DEV deploys (CI/CD) this command runs inside the Composer container to pin the theme to the `dev-develop` branch and refresh the lock. Production deployments use the default theme version from `composer.json` (`dev-master`). See `.github/workflows/job-deploy.yml` step "Switch Theme Version for Dev Environment".
+
 ### Post-Installation Scripts
 ```bash
 # Automatically runs after install/update
@@ -117,8 +119,8 @@ composer run post-update-cmd
 ### Package Installation Preferences
 ```json
 "preferred-install": {
-"solidbunch/starter-kit-theme": "source",
-"*": "dist"
+  "solidbunch/starter-kit-theme": "source",
+  "*": "dist"
 }
 ```
 - **Source**: Custom packages installed from source code
@@ -127,8 +129,8 @@ composer run post-update-cmd
 ### Security & Permissions
 ```json
 "allow-plugins": {
-"composer/installers": true,
-"solidbunch/composer-installers": true
+  "composer/installers": true,
+  "solidbunch/composer-installers": true
 }
 ```
 - Explicitly allows custom installer plugins
@@ -237,7 +239,7 @@ composer update --interactive
 
 ### Information Commands
 ```bash
-composer show                    # List all packages
+composer show                   # List all packages
 composer show --tree            # Show dependency tree
 composer show --latest          # Show latest versions
 composer status                 # Show modified packages
