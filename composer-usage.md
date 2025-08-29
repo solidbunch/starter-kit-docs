@@ -21,6 +21,32 @@ composer require package-name
 
 Always run Composer inside the Composer container via `make run composer` for consistent and correct file ownership and environment.
 
+### Running Composer inside a theme or custom plugin
+
+If your theme or custom plugin has its own `composer.json`, run Composer from that directory inside the Composer container.
+
+```bash
+# Enter the Composer container
+make run composer
+
+# Theme example
+cd web/wp-content/themes/<your-theme>
+composer install   # or: composer update
+
+# Plugin example
+cd web/wp-content/plugins/<your-plugin>
+composer install   # or: composer update
+```
+
+Alternative (without cd), using working directory flag:
+```bash
+make run composer
+composer install -d web/wp-content/themes/<your-theme>
+composer update  -d web/wp-content/plugins/<your-plugin>
+```
+
+Note: The `composer.lock` in that directory belongs to the theme/plugin repository. Use these commands when you want to install or update dependencies only for that specific theme or plugin.
+
 ### What happens after install/update
 After `composer install` or `composer update`, the post scripts defined in `composer.json` run automatically:
 - Create `web/wp-core/wp-content/` if missing
