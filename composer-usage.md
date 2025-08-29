@@ -95,6 +95,28 @@ web/
 - **Starter Kit Theme**: Development theme repository
 - **Kit-Modules**: Licensed modules packages
 
+### WordPress Integration
+
+- WordPress core is installed to `web/wp-core/`
+- Plugins and themes go to standard WordPress directories
+- Configuration files are automatically copied after installation
+
+StarterKit uses `solidbunch/wordpress-core-no-content` as the WordPress core source and installs it into `web/wp-core/` via custom installers. Version is managed in the root `composer.json` under `require`.
+
+```json
+"require": {
+  "solidbunch/wordpress-core-no-content": "^6.8"
+}
+```
+
+To change or bump the WordPress version, edit the version constraint and run inside the Composer container:
+```bash
+make run composer
+composer update solidbunch/wordpress-core-no-content
+```
+
+Details: https://github.com/solidbunch/wordpress-core
+
 ## 🚀 Available Composer Scripts
 
 ### Environment-Specific Installation
@@ -289,11 +311,6 @@ composer config --global --list # Show global configuration
 ### Custom Packages
 - `solidbunch/starter-kit-theme` is always installed from source
 - Custom installers handle WordPress-specific paths
-
-### WordPress Integration
-- WordPress core is installed to `web/wp-core/`
-- Plugins and themes go to standard WordPress directories
-- Configuration files are automatically copied after installation
 
 ---
 
