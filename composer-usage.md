@@ -59,10 +59,12 @@ These steps ensure WordPress core receives the required config after dependency 
 ## 🏗️ Project Structure & Dependencies
 
 ### Core Requirements
-- **PHP**: >=8.1
+- **PHP**: >=8.4
 - **WordPress Core**: `solidbunch/wordpress-core-no-content`
-- **Kit-Modules**
-- **WordPress Theme and Plugins**
+- **Kit-Modules** — `basis`, `monitoring-client`, `monitoring-server` (required, licensed — resolve
+  to real code once a valid license is configured; without one, Composer resolves an empty
+  `metapackage` stub instead), plus opt-in `proxy`. See [Infrastructure](infrastructure.md).
+- **WordPress Theme, Addon and Plugins**
 - **Development Dependencies**
 
 ## 🔧 Custom Installer Configuration
@@ -92,8 +94,11 @@ web/
 ### Repository Configuration
 - **WPackagist**: WordPress plugin/theme repository
 - **SolidBunch WordPress Core**: Custom WordPress core package
+- **SolidBunch Licensing**: private Composer repository (`licensing.starter-kit.io`) that resolves
+  `basis`, `monitoring-client`, `monitoring-server`, and `starter-kit-addon` once a valid license
+  is configured — see [Infrastructure](infrastructure.md)
 - **Starter Kit Theme**: Development theme repository
-- **Kit-Modules**: Licensed modules packages
+- **Kit-Modules**: Licensed modules packages, installed to `kit-modules/{$name}/`
 
 ### WordPress Integration
 
@@ -105,7 +110,7 @@ StarterKit uses `solidbunch/wordpress-core-no-content` as the WordPress core sou
 
 ```json
 "require": {
-  "solidbunch/wordpress-core-no-content": "^6.8"
+  "solidbunch/wordpress-core-no-content": "^7.0"
 }
 ```
 

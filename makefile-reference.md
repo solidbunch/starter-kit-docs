@@ -42,10 +42,13 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | **make run \<service\>**                | `sh/dev/run.sh run $(PARAMS)`                         | Starts a one-off container with shell                  |
 | **make exec \<service\>**               | `sh/dev/run.sh exec $(PARAMS)`                        | Opens a shell in running container                     |
 | **make lint**                           | `composer lint && npm run lint`                       | PHP & JS linters inside containers                     |
-| **make terraform \<command\>**          | `terraform -chdir=iac/terraform $(PARAMS)`            | Run Terraform configuration                            |
-| **make ansible \<command\>**            | `ansible-playbook iac/ansible/playbook.yml $(PARAMS)` | Provision or deploy with Ansible                       |
+| **make basis**                          | `docker compose run iac`                              | Interactive shell in the IaC container, `cd`'d into `kit-modules/basis` |
+| **make tf \<env\> \<command\>**         | `kit-modules/basis/sh/terraform.sh -e $(PARAM1) -c $(PARAM2)` | Run Terraform (`init`, `plan`, `apply`, `destroy`) for an environment |
+| **make ansible \<env\> \<inventory\|playbook\>** | `kit-modules/basis/sh/ansible.sh -e $(PARAM1) -a $(PARAM2)` | Provision or deploy with Ansible                       |
 | **make docker build\|push \[service\]** | `sh/system/docker.sh $(PARAMS)`                       | Build, push docker images to Registry                  |
 | **make docker clean\|prune**            | `sh/system/docker.sh $(PARAMS)`                       | Prune all docker containers, images, volumes, networks |
+| **make docker-login**                   | `sh/system/docker.sh login`                           | Registry auth only (ghcr.io) — no build/push           |
+| **make monitoring \[on\|off\]**         | `kit-modules/monitoring-client/sh/monitoring.sh -m $(PARAM1)` | Run the monitoring-client scenario (alias: `make mon`) |
 
 ---
 

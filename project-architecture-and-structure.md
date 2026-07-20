@@ -13,7 +13,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 │   └── ssl/                  # SSL certificates and keys
 ├── db-data/                  # Persistent database volume
 ├── dockerfiles/              # Custom Dockerfile definitions
-├── iac/                      # Infrastructure as Code (Terraform + Ansible)
+├── kit-modules/               # Licensed sub-projects, Composer-installed, git-ignored (basis, monitoring-client/server, opt-in proxy)
 ├── logs/                     # Log files for WordPress, PHP, nginx
 ├── sh/                       # Shell scripts: setup, CLI wrappers, backups
 ├── web/                      # Web application folder

@@ -14,6 +14,8 @@
 
 > ⚡️ Looking to scaffold a new WordPress project, not just clone this StarterKit? See: [Advanced Installation Options](advanced-installation-options.md). You'll generate your own repository with independent Git history and configuration — a clean foundation ready to customize and deploy.
 
+> 🤖 Using [Claude Code](https://docs.claude.com/en/docs/claude-code)? You can skip most of the manual steps below — see [AI-Assisted Development](ai-assisted-development.md) for the automated bootstrap sequence.
+
 
 **Clone the repository:**
 
