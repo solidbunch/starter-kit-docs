@@ -6,9 +6,10 @@ kit-module) carries its own `CLAUDE.md` and, where needed, topic-scoped rule fil
 `.claude/rules/`. Claude Code loads these automatically based on the files you're working with —
 there's no setup required beyond having Claude Code installed and running it inside the project.
 
-This is optional. Everything Claude does here is the same thing you'd do by hand from
-[Installation](installation.md) and [Usage](usage.md) — it just automates the repetitive parts and
-already knows the project's conventions, hard rules, and folder layout.
+This is optional, and it covers two different things: **bootstrapping** a brand-new project (§3)
+and **day-to-day development** on a project that's already running (§4). Both rely on the same
+built-in context — Claude isn't guessing at conventions, it's reading rule files written and
+maintained specifically for this codebase.
 
 ---
 
@@ -22,6 +23,22 @@ already knows the project's conventions, hard rules, and folder layout.
 
 Each layer documents only its own concerns and points back to the others — you don't need to open
 or reference these files yourself, just start Claude Code from the project root and work normally.
+
+The Foundation layer alone breaks down into topic-scoped rule files, each loaded only when it's
+relevant to what you're editing:
+
+| Rule file           | Loads when                                                                     |
+|----------------------|----------------------------------------------------------------------------------|
+| `workflow.md`        | always — how to work on this project (scope control, before/after commit checks) |
+| `debug.md`           | always — debugging tools, what never to commit                                  |
+| `infrastructure.md`  | editing `kit-modules/**`, `*.tf`, `*.tfvars` — Terraform/Ansible/licensing       |
+| `docker.md`          | editing `docker-compose*.yml`, `dockerfiles/**`, related shell scripts          |
+| `ci.md`              | editing `.github/workflows/**` — deploy and provisioning pipelines             |
+| `config.md`          | editing `config/**` — env files, nginx templates, PHP ini, cron, certbot, SSL   |
+
+This is what makes ongoing work (§4) different from asking a generic AI assistant for help: Claude
+already knows the hard rules, the folder layout, and the reasoning behind them before you type
+anything.
 
 ---
 
@@ -47,7 +64,7 @@ scan. `bootstrap-project` will use it in its final step if it's available, but i
 
 ---
 
-## 3. Starting a new project with Claude Code
+## 3. Bootstrapping a new project with Claude Code
 
 This is the recommended sequence when you're starting a **brand-new project** from this template,
 replacing the manual steps in [Installation](installation.md):
@@ -107,7 +124,37 @@ replacing the manual steps in [Installation](installation.md):
 
 ---
 
-## 4. What Claude will (and won't) do on its own
+## 4. Working on an existing project with Claude Code
+
+Once a project is running, Claude Code stays useful for day-to-day development — this isn't a
+one-time bootstrap tool. Because the rule files from §1 are already in place, you don't need to
+re-explain the project's structure or conventions each session; just start Claude Code from the
+project root (or from inside the theme's own working copy, for theme-specific work) and describe
+the task.
+
+Typical ongoing tasks and what Claude already knows going in:
+
+- **New Gutenberg block** — ask for it in plain English (e.g. "add a testimonials block") and
+  Claude runs the `create-gutenberg-block` skill, following the theme's existing block structure,
+  build pipeline, and registration pattern instead of inventing its own.
+- **Switching page-assembly mechanism** — the `convert-to-classic-theme` skill moves the theme
+  from FSE to classic PHP templates (Gutenberg/blocks stay); safe to run any time, not just during
+  bootstrap.
+- **Turning a design handoff into a template** — the `create-classic-template` skill maps static
+  HTML (blog, landing, listing pages) onto the theme's existing blocks, repositories, and Page
+  Builder Carbon Fields contract, once the theme is classic.
+- **Bug fixes, refactors, new features** — no dedicated skill needed; Claude reads the relevant
+  `CLAUDE.md`/rule files for whatever you touch (theme PHP, a Docker file, a CI workflow, an
+  environment config) and follows this project's specific conventions and hard rules automatically.
+- **Infrastructure and deployment work** — editing `kit-modules/**`, Terraform, or GitHub Actions
+  workflows loads `infrastructure.md`/`ci.md` automatically; see [Infrastructure](infrastructure.md)
+  and [CI/CD Deployments](ci-cd-deployments.md) for the manual version of the same steps.
+
+See [Available skills](#2-available-skills) above for the full list shipped with the project.
+
+---
+
+## 5. What Claude will (and won't) do on its own
 
 The project's rules encode hard boundaries Claude respects in every session:
 
