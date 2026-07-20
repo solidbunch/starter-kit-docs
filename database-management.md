@@ -44,7 +44,11 @@ make exec mariadb
 4. Inside container run:
 
 ```bash
- mariadb> FLUSH PRIVILEGES; ALTER USER 'root'@'%' IDENTIFIED BY 'new_password';
+mariadb --ssl=OFF
+```
+
+```bash
+FLUSH PRIVILEGES; ALTER USER 'root'@'%' IDENTIFIED BY 'new_password';
 ```
 Where 'new_password' - new root password
 
