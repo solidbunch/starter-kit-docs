@@ -1,0 +1,54 @@
+<!-- wp:paragraph -->
+<p>Mail is not routed by the Docker containers, you must use an SMTP external service to route your site's email.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The reason that mail is not routed is that configuring mail to route from the proper domain on a server is often a headache. A further headache is actually getting mail delivered from an arbitrary IP. A third issue is that mail servers consume resources. A fourth issue is security. So for all these reasons we decided not to implement mail and instead delegate that task to various providers.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>You can set up an SMTP service like Gmail, AWS SES, Sendinblue, Mailgun, etc., or use another server you like.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Just edit SMTP config block in your <code>.env.main</code> and <code>.env.secret</code> files.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><code>.env.main</code>:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code># SMTP config
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+
+# none|ssl|tls
+SMTP_SECURE=tls
+SMTP_DEBUG=0</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p><code>.env.secret</code>:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>SMTP_USER=your_smtp_service_user_name
+SMTP_PASS=your_smtp_service_user_password</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Also, to debug Emails on local you can use <a href="https://github.com/mailhog/MailHog">MailHog</a> service. Just run:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make mailhog</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p><code>.env.type.local</code> file already has mailhog connection settings.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>This will run MailHog container, and you can access it on <code>your-app-domain.com:8025</code> URL.</p>
+<!-- /wp:paragraph -->

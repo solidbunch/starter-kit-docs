@@ -1,0 +1,142 @@
+<!-- wp:paragraph -->
+<p>If you prefer not to use the default git clone flow, or you're working in a restricted environment, the following alternative installation methods are supported:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>1. Scaffold a New GitHub Repository (Template)</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>You can generate a new GitHub repository using this Starter Kit as a base:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>➡️ <a href="https://github.com/solidbunch/starter-kit-foundation/generate">Generate a new GitHub repository</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>This method creates a fresh project under your account with its own Git history. Ideal for clean starts, production projects, or migrating legacy sites into a modern stack.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p>After generating, clone your new repository:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">git clone https://github.com/your-org/your-project.git</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>And install the stack (following the same steps as in the main installation guide):</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">cd your-project
+make install</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>2. Clone via SSH</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">git clone git@github.com:solidbunch/starter-kit-foundation.git my-project</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>✅ Requires <a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh">SSH key setup</a>. Recommended for teams and long-term development workflows.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>After cloning, create a new Git repository and update the remote origin:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">rm -rf .git                                                          # Remove existing Git history
+git init                                                             # Initialize a new Git repository
+git remote add origin git@github.com:your-username/your-project.git  # Add your new remote repository</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>This converts the StarterKit into your own standalone project — with a fresh Git history, ready to develop and deploy.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>3. Download as ZIP</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>Go to: <a href="https://github.com/solidbunch/starter-kit-foundation">https://github.com/solidbunch/starter-kit-foundation</a></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Click <strong>Code → Download ZIP</strong></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Extract and rename the folder as needed</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>✅ No Git required. Ideal for beginners or quick exploration.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>4. Composer</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">composer create-project solidbunch/starter-kit-foundation my-project</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>✅ Requires PHP and Composer. Suitable for CI/CD and PHP-centric workflows. Check required PHP version and Composer version in the <a href="https://github.com/solidbunch/starter-kit-foundation/blob/master/composer.json">StarterKit's <code>composer.json</code></a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>5. GitHub CLI</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">gh repo create my-project --template=solidbunch/starter-kit-foundation --public</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>✅ For users of the <code>gh</code> CLI. Ideal for automation and scripting.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Summary Table</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Method</th><th>Git Required</th><th>SSH Required</th><th>Best For</th></tr></thead><tbody><tr><td>GitHub Template</td><td>❌</td><td>❌</td><td>Fresh projects, production setup</td></tr><tr><td>HTTPS Clone</td><td>✅</td><td>❌</td><td>Default flow (see: Installation)</td></tr><tr><td>SSH Clone</td><td>✅</td><td>✅</td><td>Teams, remote development</td></tr><tr><td>ZIP Download</td><td>❌</td><td>❌</td><td>Evaluation, offline work</td></tr><tr><td>Composer</td><td>✅</td><td>❌</td><td>PHP workflows, CI environments</td></tr><tr><td>GitHub CLI</td><td>✅</td><td>Optional</td><td>Scripted project bootstrapping</td></tr></tbody></table></figure>
+<!-- /wp:table -->

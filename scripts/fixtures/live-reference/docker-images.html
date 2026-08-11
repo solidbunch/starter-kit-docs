@@ -1,0 +1,15 @@
+<!-- wp:paragraph -->
+<p>Image names are defined in <code>./config/environment/.env.main</code>. Images are pulled from the registry by Docker. Use a custom containers registry for your project's Docker containers, such as <a href="https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry">GitHub Registry</a> or <a href="https://docs.docker.com/guides/walkthroughs/publish-your-image/">Docker Hub</a>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>To build and push images to the registry, use the following commands from the root of your project directory:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make docker build</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make docker push</code></pre>
+<!-- /wp:starter-kit/code -->

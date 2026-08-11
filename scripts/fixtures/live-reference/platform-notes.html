@@ -1,0 +1,168 @@
+<!-- wp:paragraph -->
+<p>This project is designed to work across all major development environments using Docker. Below are platform-specific notes and recommendations to ensure a smooth setup.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Linux</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>✅ Fully supported and recommended.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Most Linux distributions include native support for Docker, Docker Compose, Make, and Git.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="https://docs.docker.com/engine/install/">Install Docker Engine</a> v24+ (includes Compose v2)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Use your package manager to install dependencies:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">sudo apt install make git</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Ensure your user is added to the <code>docker</code> group:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">sudo usermod -aG docker $USER</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Log out and back in for the group change to take effect.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>macOS</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>✅ Fully supported.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><a href="https://docs.docker.com/desktop/setup/install/mac-install/">Install Docker Desktop</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Install required tools via <a href="https://brew.sh">Homebrew</a>:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>brew install make git</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Windows (WSL2 Required)</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>⚠️ <strong>Windows requires WSL2</strong>. Native Windows Docker setups are not supported.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Step-by-Step Setup</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/heading {"level":4,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h4>1. Install WSL2</h4>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Follow <a href="https://learn.microsoft.com/en-us/windows/wsl/install">Microsoft’s official guide</a> to install WSL2 and set up a Linux distribution (e.g., Ubuntu).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"level":4,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h4>2. Install Docker in WSL</h4>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Do not use Docker Desktop for Windows</strong> it is not supported.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Install Docker Engine <strong>directly inside WSL</strong>. See <a href="https://docs.docker.com/engine/install/ubuntu/">Docker in WSL2</a>. This includes Docker Compose v2.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"level":4,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h4>3. Verify Docker Access</h4>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Run:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>docker version</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>If you see version info, Docker is working.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"level":4,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h4>4. Install Dependencies inside WSL</h4>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Open a WSL terminal and run:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>sudo apt update
+sudo apt install make git</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>⚠️ Important Notes</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>Always clone your project <strong>inside the WSL filesystem</strong> (e.g., <code>/home/youruser/project</code>). Avoid mounting Windows paths (e.g., <code>/mnt/c/...</code>) to prevent permission issues and performance degradation.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Run all <code>make</code> commands inside the WSL terminal.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Summary</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Platform</th><th>Docker Support</th><th>Notes</th></tr></thead><tbody><tr><td>Linux</td><td>✅ Native</td><td>Recommended for performance</td></tr><tr><td>macOS</td><td>✅ via Docker Desktop</td><td>Use Homebrew for tooling</td></tr><tr><td>Windows</td><td>⚠️ WSL2 required</td><td>Clone projects inside WSL</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>💡 Having issues with Docker or permissions? See <a href="/doc/troubleshooting/">Troubleshooting</a> for common solutions.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->

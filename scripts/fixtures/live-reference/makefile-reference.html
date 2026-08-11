@@ -1,0 +1,39 @@
+<!-- wp:paragraph -->
+<p>The <strong>Makefile</strong> is a slim wrapper around a collection of shell scripts and <code>docker compose</code> calls, giving you short, memorable commands for every stage of your local and remote workflow.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Preamble &amp; Variables</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Name</th><th>Meaning</th></tr></thead><tbody><tr><td><code>CURRENT_UID</code> / <code>CURRENT_GID</code></td><td>Host user and group IDs (forced to <strong>1000</strong> on macOS). Injected into containers so generated files retain correct ownership.</td></tr><tr><td><code>PARAMS</code></td><td>Everything you type <strong>after</strong> the target — <code>make &lt;target&gt; [params...]</code> — forwarded to the called script.</td></tr><tr><td><code>PARAM1…PARAM3</code></td><td>Shortcuts for the first three extra words — <code>make &lt;target&gt; [param1] [param2] [param3]</code>.</td></tr><tr><td><code>DEFAULT_USER</code></td><td>Docker user name read from <code>.env.main</code>, in result have <code>CURRENT_UID</code> and <code>CURRENT_GID</code>, so same IDs as Host user</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Targets</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Make Target</th><th>Command</th><th>Description</th></tr></thead><tbody><tr><td><strong>make install [environment_type]</strong></td><td><code>sh/system/install.sh</code></td><td>One‑shot install</td></tr><tr><td><strong>make i</strong></td><td><code>make install</code></td><td>Alias</td></tr><tr><td><strong>make secret</strong></td><td><code>sh/env/secret-gen.sh</code></td><td>Create <code>.env.secret</code></td></tr><tr><td><strong>make env [environment_type]</strong></td><td><code>sh/env/init.sh $(PARAMS)</code></td><td>Re‑build root <code>.env</code> from parts</td></tr><tr><td><strong>make certbot</strong></td><td><code>sh/system/certbot.sh $(PARAMS)</code></td><td>Obtain or renew SSL certificates</td></tr><tr><td><strong>make ssl</strong></td><td><code>make certbot</code></td><td>Alias</td></tr><tr><td><strong>make core-install</strong></td><td><code>sh/wp-cli/core-install.sh</code></td><td>Idempotent WordPress core install</td></tr><tr><td><strong>make watch</strong></td><td><code>sh/dev/npm-watch.sh $(PARAMS)</code></td><td>Front‑end watch with BrowserSync</td></tr><tr><td><strong>make up [environment_type]</strong></td><td><code>docker compose up -d</code></td><td>Start (or rebuild) containers, detached</td></tr><tr><td><strong>make upd [environment_type]</strong></td><td><code>docker compose up</code></td><td>Same, foreground</td></tr><tr><td><strong>make down</strong></td><td><code>docker compose down -v</code></td><td>Stop containers and drop named volumes</td></tr><tr><td><strong>make restart [environment_type]</strong></td><td><code>docker compose restart</code></td><td>Quick service restart</td></tr><tr><td><strong>make recreate [environment_type]</strong></td><td><code>docker compose up --force-recreate</code></td><td>Rebuild &amp; replace every container</td></tr><tr><td><strong>make import \</strong></td><td><code>sh/database/import.sh -f $(PARAM1)</code></td><td>Import SQL dump and fix URLs</td></tr><tr><td><strong>make export</strong></td><td><code>sh/database/export.sh</code></td><td>Dump current DB to <code>tmp/</code></td></tr><tr><td><strong>make replace [search] [replace]</strong></td><td><code>sh/wp-cli/search-replace.sh $(PARAMS)</code></td><td>Database search/replace</td></tr><tr><td><strong>make migrate \ \</strong></td><td><code>sh/system/migrate.sh -s $(PARAM1) -d $(PARAM2)</code></td><td>Push/pull DB between environments</td></tr><tr><td><strong>make pma</strong></td><td><code>docker compose run phpmyadmin</code></td><td>Throw‑away phpMyAdmin session</td></tr><tr><td><strong>make mailhog</strong></td><td><code>docker compose run mailhog</code></td><td>MailHog UI for local SMTP</td></tr><tr><td><strong>make log [service]</strong></td><td><code>docker compose logs -f $(PARAMS)</code></td><td>Tail service logs</td></tr><tr><td><strong>make run \</strong></td><td><code>sh/dev/run.sh run $(PARAMS)</code></td><td>Starts a one-off container with shell</td></tr><tr><td><strong>make exec \</strong></td><td><code>sh/dev/run.sh exec $(PARAMS)</code></td><td>Opens a shell in running container</td></tr><tr><td><strong>make lint</strong></td><td><code>composer lint &amp;&amp; npm run lint</code></td><td>PHP &amp; JS linters inside containers</td></tr><tr><td><strong>make terraform \</strong></td><td><code>terraform -chdir=iac/terraform $(PARAMS)</code></td><td>Run Terraform configuration</td></tr><tr><td><strong>make ansible \</strong></td><td><code>ansible-playbook iac/ansible/playbook.yml $(PARAMS)</code></td><td>Provision or deploy with Ansible</td></tr><tr><td><strong>make docker build|push [service]</strong></td><td><code>sh/system/docker.sh $(PARAMS)</code></td><td>Build, push docker images to Registry</td></tr><tr><td><strong>make docker clean|prune</strong></td><td><code>sh/system/docker.sh $(PARAMS)</code></td><td>Prune all docker containers, images, volumes, networks</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>UID/GID Handling</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><code>CURRENT_UID</code> and <code>CURRENT_GID</code> are exported to every container so that WordPress, npm and composer outputs stay writable from the host. On macOS these values are forced to <strong>1000</strong> to match Docker’s default user.</p>
+<!-- /wp:paragraph -->

@@ -1,0 +1,89 @@
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Setup infrastructure with Terraform</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>For control your servers infrastructure use following steps:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>Check <code>./iac/terraform/*.tf</code> files, update your provider and infrastructure settings</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Add provider credentials. For example for AWS use <code>~/.aws/credentials</code> file. Add <code>aws_access_key_id</code> and <code>aws_secret_access_key</code>. <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global">Configuration and credential file settings</a></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Add your deployment public key <code>id_rsa.pub</code> to <code>./iac/terraform/public_keys/</code> folder</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Run terraform <a href="https://developer.hashicorp.com/terraform/cli/commands">commands</a>:</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make terraform [command]</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Examples:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make terraform init
+make terraform plan
+make terraform apply</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Automate server apps with Ansible</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>For running server setup automations use this steps:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>Add public key to <code>~/authorized_keys</code> file on servers (use <code>make terraform apply</code> command if you haven't already done so)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Check your credentials in <code>./.ssh</code> folder. Use <a href="https://linuxize.com/post/using-the-ssh-config-file/">ssh config file</a> to simplify connections.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Check <code>./iac/ansible/inventory.yml</code> servers and credentials, host names should be the same as on ssh config file.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Check <code>./iac/ansible/playbook.yml</code> file hosts and tasks. Hosts must correspond to inventory hosts.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Run ansible command:</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make ansible</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>This will run main playbook <code>ansible-playbook -i iac/ansible/inventory.yml iac/ansible/playbook.yml</code> for all hosts.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>To run playbook for specific host use command:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make ansible -- --limit [host]</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>After that you will be able to run CI/CD deployment pipelines automations.</p>
+<!-- /wp:paragraph -->

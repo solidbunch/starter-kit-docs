@@ -1,0 +1,166 @@
+<!--
+  SUPERSEDED, 2026-08-10 (later same day), for `starter-kit/paragraph`, `starter-kit/list-section`/
+  `starter-kit/list-item`, and `core/quote`'s inner shape, plus `starter-kit/code`'s `<pre>` class
+  list and `core/table`'s `<table>` class: real markup dumped from the 17 already-published
+  `doc-page` posts on `starter-kit.loc` (`scripts/fixtures/live-reference/*.html`) contradicts
+  this synthetic capture for those shapes — the real convention is `core/paragraph` and
+  `core/list`/`core/list-item` (not `starter-kit/paragraph`/`list-section`/`list-item`, which are
+  never used live), `core/quote` wraps InnerBlocks `core/paragraph` (not raw `<p>` with no block
+  comments), `starter-kit/code`'s `<pre>` class is `sk-block-code` only (no
+  `wp-block-starter-kit-code`), and `core/table`'s `<table>` carries `class="has-fixed-layout"`.
+  See `.claude/plans/architect-plan-docs-sync-script-stage1.md`'s "Update 2026-08-10 (later same
+  day)" section and `lib/blocks.mjs`'s header comment. `core/separator` and `starter-kit/code`'s
+  language-attribute logic below remain correct and unchanged.
+
+  ALSO SUPERSEDED (found later, same day, during dry-run review): `starter-kit/heading`'s
+  `wp-block-starter-kit-heading` class below does not exist on any of the 102 heading instances
+  across the 17 live pages — corrected below to no class. The `{"spacers":{...}}` JSON attribute
+  present on every live heading (theme-wide, added by a global JS filter to all `starter-kit/*`
+  blocks — see the plan) is deliberately still NOT reproduced here or in `lib/blocks.mjs`; this is
+  an accepted, documented gap for Stage 1, not an oversight.
+
+  Task 1.1 golden markup capture — scripts/fixtures/golden-blocks.html
+
+  Method actually used (deviation from the plan's literal "use the Gutenberg editor UI"
+  instruction, explicitly authorized): source-level verification against the theme's
+  compiled block bundles (blocks/*/build/index.js, byte-identical to blocks/*/src/index.jsx)
+  cross-checked against @wordpress/blocks' actual serializer source (getCommentAttributes,
+  getCommentDelimitedContent, getBlockProps/addGeneratedClassName — fetched via
+  `npm pack @wordpress/blocks@latest` and `@wordpress/block-editor@latest` for exact
+  reference), then round-tripped for real on the live site: this markup was written to
+  `wp post create` (scratch page id 341, since deleted), read back via
+  `wp post get --field=post_content` (byte-identical modulo one trailing newline WP always
+  appends), and verified with `parse_blocks()` / `do_blocks()` via `wp eval`. No block in the
+  output parses to a null/unparsed blockName, and `do_blocks()` renders all 10 shapes below
+  without a PHP fatal or notice.
+
+  CONFIRMED, Decision 3a (source plan's list-item template was WRONG):
+  `starter-kit/list-item`'s save() calls `<RichText.Content {...blockProps} value={attributes.text} />`
+  with NO `tagName` prop. `RichText.Content` (@wordpress/block-editor, content.js) returns the
+  raw RawHTML value verbatim and drops every other prop (including className) when `tagName`
+  is falsy — confirmed by reading its actual export: `return Tag ? <Tag {...props}>{value}</Tag> : value;`.
+  So a `starter-kit/list-item` block's saved markup is the bare inline HTML of the item, with
+  NO `<li>` wrapper and NO `wp-block-starter-kit-list-item` class — not
+  `<li class="wp-block-starter-kit-list-item">Item text</li>` as the source plan assumed.
+  Live-rendered proof: `do_blocks()` on the captured markup produces zero `<li` tags and zero
+  `wp-block-starter-kit-list-item` occurrences anywhere in the output. The enclosing
+  `<ul>`/`<ol>` (from `list-section`) IS correctly wrapped and classed — only the item level is
+  bare. This is a real, if unusual, theme behavior — not a script bug to work around; the sync
+  script must reproduce it exactly (Task 2.3).
+
+  CONFIRMED, Decision 3b (starter-kit/code, language="auto" vs a real language):
+  - `language="auto"` (the default, ~110 fences in this doc set): `<code>` gets NO class
+    attribute at all (`language !== 'auto' ? \`language-${language}\` : undefined` — React
+    drops a `className={undefined}` prop entirely). No `language` JSON attribute in the
+    opening comment either (WordPress's serializer omits any attribute whose value equals its
+    block.json `default`, and `language`'s default is `"auto"` — verified directly from
+    `@wordpress/blocks`' `getCommentAttributes()`).
+  - `language="bash"` (or any non-auto value): `<code class="language-bash">` and
+    `{"language":"bash"}` in the opening comment.
+  - `<pre>` class order is `wp-block-starter-kit-code sk-block-code` (default-generated class
+    first, custom `sk-block-code` second) — resolved definitively by reading
+    `addGeneratedClassName()` in `@wordpress/blocks`, which always prepends the block's default
+    class ahead of whatever extra classes were passed to `useBlockProps.save()`. The source
+    plan flagged this order as unknowable from source; it is not — this is the answer.
+
+  Also confirmed while capturing, not previously flagged:
+  - WordPress's real block-comment serializer omits ANY attribute equal to its block.json
+    `default`, not just `language`. `starter-kit/heading`'s `level` default is `2`, so a
+    level-2 heading serializes with the "wp starter-kit/heading" opening comment carrying NO `{"level":2}` — the
+    source plan's own template example (`{"level":2}` explicitly present) does not reflect real
+    WordPress output for the default level. Only non-default levels (1, 3-6) carry the `level`
+    JSON attribute. Same logic applies to `listType` (default `"ul"`, so only `"ol"` lists carry
+    `{"listType":"ol"}`) and `alignment` (default `""`/`"none"`, essentially never emitted by
+    this converter since the doc set has no per-block alignment overrides).
+  - `core/quote`'s canonical (non-InnerBlocks) attribute shape — `"value"` sourced as HTML from
+    `<blockquote>`, `multiline: "p"` — round-trips cleanly through `parse_blocks()`/`do_blocks()`
+    on this WordPress 7.0.2 install: multiple `<p>` elements directly inside one `<blockquote>`,
+    no nested "wp paragraph" blocks needed. This matches the source plan's original
+    (never independently confirmed, per its own caveat) template.
+  - `core/table` and `core/separator` shapes below are standard WordPress core block save()
+    output (verified against `wp-includes/blocks/table/block.json` and
+    `wp-includes/blocks/separator/block.json` on the live install, and round-tripped the same
+    way) — both survive `parse_blocks()`/`do_blocks()` with the expected block names.
+
+  Not settled by this task (correctly out of scope): whether `wp_kses_post` (non-admin,
+  no `unfiltered_html`) strips anything from `core/table`'s `<figure>`/`<colgroup>`-less table
+  markup, since WP-CLI's `post create` bypasses REST/kses entirely. That remains a Stage 3
+  question per the plan (blocked on `docs-publisher` credentials), noted in the main report.
+
+  Known theme defect, unrelated to any of the above, reported not fixed (different repo):
+  `starter-kit/list-item`'s block.json declares `"parent": ["starter-kit/list"]`, a block name
+  that does not exist (the real wrapper is `starter-kit/list-section`). This only constrains the
+  inserter UI, not stored-content validity, and did not cause any issue in this capture.
+-->
+
+<!-- wp:starter-kit/paragraph -->
+<p class="wp-block-starter-kit-paragraph">This is a paragraph with <strong>bold</strong>, <em>italic</em>, <code>inline code</code> and <a href="/docs/installation/">a link</a>.</p>
+<!-- /wp:starter-kit/paragraph -->
+
+<!-- wp:starter-kit/heading {"level":1} -->
+<h1>Heading Level 1</h1>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/heading -->
+<h2>Heading Level 2</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/list-section -->
+<ul class="wp-block-starter-kit-list-section"><!-- wp:starter-kit/list-item -->
+First bullet item
+<!-- /wp:starter-kit/list-item -->
+
+<!-- wp:starter-kit/list-item -->
+Second bullet item
+<!-- /wp:starter-kit/list-item --></ul>
+<!-- /wp:starter-kit/list-section -->
+
+<!-- wp:starter-kit/list-section {"listType":"ol"} -->
+<ol class="wp-block-starter-kit-list-section"><!-- wp:starter-kit/list-item -->
+First ordered item
+<!-- /wp:starter-kit/list-item -->
+
+<!-- wp:starter-kit/list-item -->
+Second ordered item
+<!-- /wp:starter-kit/list-item --></ol>
+<!-- /wp:starter-kit/list-section -->
+
+<!-- wp:starter-kit/list-section -->
+<ul class="wp-block-starter-kit-list-section"><!-- wp:starter-kit/list-item -->
+Outer item 1
+<!-- /wp:starter-kit/list-item -->
+
+<!-- wp:starter-kit/list-section -->
+<ul class="wp-block-starter-kit-list-section"><!-- wp:starter-kit/list-item -->
+Nested item 1
+<!-- /wp:starter-kit/list-item -->
+
+<!-- wp:starter-kit/list-item -->
+Nested item 2
+<!-- /wp:starter-kit/list-item --></ul>
+<!-- /wp:starter-kit/list-section -->
+
+<!-- wp:starter-kit/list-item -->
+Outer item 2
+<!-- /wp:starter-kit/list-item --></ul>
+<!-- /wp:starter-kit/list-section -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="wp-block-starter-kit-code sk-block-code"><code class="language-bash">echo &quot;hi &lt;there&gt; &amp; friends&quot;</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/code -->
+<pre class="wp-block-starter-kit-code sk-block-code"><code>plain fenced text with no language, e.g. &lt;tag&gt; &amp; symbols</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>First blockquote paragraph.</p><p>Second blockquote paragraph.</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Column A</th><th>Column B</th></tr></thead><tbody><tr><td>Row 1 A</td><td>Row 1 B</td></tr><tr><td>Row 2 A</td><td>Row 2 B</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->

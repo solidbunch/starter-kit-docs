@@ -1,0 +1,18 @@
+{
+  "name": "starter-kit-docs-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Converts starter-kit-docs Markdown files into starter-kit/* Gutenberg block markup and publishes them to starter-kit.loc via the WordPress REST API.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sync": "node sync-docs.mjs",
+    "sync:dry": "node sync-docs.mjs --dry-run",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0"
+  }
+}

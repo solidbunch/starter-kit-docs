@@ -1,0 +1,95 @@
+<!-- wp:paragraph -->
+<p><strong>StarterKit</strong> is a baseline WordPress environment template built for rapid project initiation.<br>It provides a <strong>preconfigured Docker-based infrastructure</strong> and a <strong>custom starter WordPress theme</strong> designed for modern development workflow. The kit simplifies the handling of sensitive data, and supports flexible configuration across multiple environments.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Watch the StarterKit overview video to see how it works:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/row {"properties":{"xs":{"justifyContent":"center"},"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]},"spacers":{"xs":{"valueRange":{"mt-xs":3,"mb-xs":3}},"sm":{},"md":{},"lg":{},"xl":{},"xxl":{}}} -->
+<div class="row justify-content-center mt-3 mb-3"><!-- wp:starter-kit/column {"size":{"xs":{"mod":"default"},"sm":[],"md":[],"lg":{"mod":"custom","valueRange":8},"xl":[],"xxl":[]}} -->
+<div class="col col-lg-8"><!-- wp:embed {"url":"https://youtu.be/uCQcxhVUsdc","type":"video","providerNameSlug":"youtube","responsive":true,"className":"wp-embed-aspect-16-9 wp-has-aspect-ratio"} -->
+<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube wp-embed-aspect-16-9 wp-has-aspect-ratio"><div class="wp-block-embed__wrapper">
+https://youtu.be/uCQcxhVUsdc
+</div></figure>
+<!-- /wp:embed --></div>
+<!-- /wp:starter-kit/column --></div>
+<!-- /wp:starter-kit/row -->
+
+<!-- wp:paragraph -->
+<p>The <strong>primary goal</strong> is to <strong>streamline the development and deployment process</strong> for Developers and DevOps engineers — from local to full-scale production.<br>The solution includes several integrated components — containers, scripts, and configuration layers — which automate repetitive tasks and enforce a standardized project structure.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>As a result, developers can <strong>focus entirely on writing code</strong>, instead of spending time configuring and maintaining the environment.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>This stack combines infrastructure with a custom WordPress theme featuring a fully integrated Bootstrap-based front-end, supporting modern block-based editing (FSE) and SCSS/JS pipelines.<br>It is composed of two main parts:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>StarterKit Foundation</strong> – provides Dockerized infrastructure, secret management, and CI/CD automation tooling using Terraform, and GitHub Actions.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>StarterKit Theme</strong> – a customizable block-based WordPress theme built with Composer, SCSS, JSX, and Bootstrap 5, ready for rapid front-end and back-end development.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Main Goals</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Rapid setup</strong> – Get a working WordPress site with Docker in minutes.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Modern tooling</strong> – Composer, Node.js, SCSS/JS compilation, and Carbon Fields is included out-of-the-box.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Environment parity</strong> – The same code and containers run locally, on staging, and in production.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Built-in DevOps</strong> – Preconfigured Terraform and GitHub Actions pipelines handle infrastructure and deployments out of the box — no setup required.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Extensibility</strong> – Open-source (MIT) and designed for easy customization.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Key Advantages</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Quick start</strong> – Spin up a full local WordPress stack with a single <code>make install</code> command. It builds containers, installs WordPress, dependencies, and initializes the database automatically.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Absolute environment consistency</strong> – All environments, local, development, staging, and production — run the exact same versions of software, services, infrastructure, and configuration. This eliminates the classic “works on my machine” problem and ensures predictable behavior across the entire lifecycle.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Convenient configuration</strong> – All parameters (application name, domains, ports, keys, etc.) live in layered <code>.env</code> files. Secrets are stored separately and generated automatically for improved security.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Universal environment</strong> – Containers cover the web server, PHP/WordPress, the database, plus helper services like Node.js, phpMyAdmin, and MailHog. This supports both Developers (asset builds, live reload) and DevOps (DB management, backups, CI/CD).</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Integrated DevOps</strong> – Everything is ready to use: Terraform defines cloud infrastructure, Ansible configures the servers, and CI/CD pipelines automatically deploy to staging and production — using the same setup across all environments.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Open-source &amp; extensible</strong> – Distributed under the MIT license and structured for community contributions. You can extend scripts and code to suit specific needs without breaking the core architecture.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->

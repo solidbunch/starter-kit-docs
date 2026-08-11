@@ -1,0 +1,25 @@
+<!-- wp:paragraph -->
+<p>The system has automatic backups. Launched by a cronjob. By default, daily and weekly backups work. With a retention period of 7 and 31 days, respectively. You can customize the frequency and content of backups yourself.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>To activate backups:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>Edit <code>./config/environment/.env.type.[environment_type]</code> file - enable <code>APP_WP_BACKUP_ENABLE</code></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Check crontab file in <code>./config/crontabs</code> - change cronjob time if it needs.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>If you have more than one database (maybe custom databases), check <code>mariadb-dump</code> command parameters in <code>./docker/cron/start-backup.sh</code></li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>Backups will appear in the <code>./backups</code> folder, logs in the docker cron container logs</p>
+<!-- /wp:paragraph -->

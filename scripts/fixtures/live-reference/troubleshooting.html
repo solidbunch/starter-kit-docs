@@ -1,0 +1,529 @@
+<!-- wp:paragraph -->
+<p>If something goes wrong, make sure that:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Docker is running</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>If Docker is not running, you'll see a connection error.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Check Docker status:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>docker info</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>And check running containers:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>docker ps</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Your SSH key has access to GitHub</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>If you have an error like:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>Permission denied (publickey).</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Or</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>fatal: Could not read from remote repository.</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Verify SSH access to GitHub:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">ssh -T git@github.com</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>You should see a message like:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>Hi &lt;username&gt;! You've successfully authenticated...</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p><br>If you see an error, ensure your SSH key is added to your GitHub account. Follow <a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh">GitHub's guide</a> to set it up.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Use SSH config to simplify access:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">cat &lt;&lt;EOF &gt;&gt; ~/.ssh/config
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_rsa
+EOF</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>💡 <strong>Tip:</strong> If you already have a <code>~/.ssh/config</code> file, check it for existing GitHub entries to avoid duplicates.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>All required <code>.env.*</code> files are present and valid</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Ensure files like <code>.env.main</code>, <code>.env.secret</code>, <code>.env.type.*</code> exist and are correctly filled.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><code>.env.secret</code> will only be generated if a valid template exists (<code>sh/env/.env.secret.template</code>)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>If needed, delete root <code>.env</code> and rerun:</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">make env</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Required ports are available</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Common error when a port is taken:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>Error starting userland proxy: listen tcp 0.0.0.0:80: bind: address already in use</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Make sure ports <code>80</code>, <code>443</code> are not in use:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Check ports:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>sudo lsof -i :80
+sudo netstat -tulpn | grep -E '80|443'</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>If a port is occupied, you will see the process PID. To stop it:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>sudo kill &lt;PID&gt;</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>⚠️ Note: Ensure no other local web server (e.g. Apache, MAMP, or LAMP) is running — it can block Docker from binding to required ports.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Check nginx logs for TLS or routing issues</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make log nginx</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Check all docker logs</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make log</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Or use specific service logs:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make log [service_name]</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Where <code>service_name</code> can be name of docker compose service, e.g. <code>nginx</code>, <code>php</code>, <code>mariadb</code>, etc.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Full Reset</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>If issues persist, you can wipe everything and start clean:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make docker clean</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>It will remove all Docker containers, images, and volumes associated with this project - <strong>excluding the database volume</strong>, which is preserved to avoid data loss.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Then re-run the installation:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make install</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Composer install/update fails with <code>Could not delete wp-core/wp-content</code></h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Symptom:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Running:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make run composer
+composer install/update</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>fails with an error similar to:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>Could not delete /srv/web/wp-core/wp-content: 
+Install of solidbunch/wordpress-core failed</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p><strong>Cause:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The <code>php</code> container is running and holds a lock on the <code>web/wp-core/wp-content</code> directory. Composer cannot replace the <code>solidbunch/wordpress-core</code> package while this directory exists.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Resolution:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Stop all running containers:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make down</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Delete the empty <code>web/wp-core/wp-content</code> directory:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>rm -r web/wp-core/wp-content</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>⚠️ Make sure the directory is empty before deleting.<br>The command will fail if it's not empty — this is intentional.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p>Run Composer again:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>composer update</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Stop and remove all running containers</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Symptom:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>containers are running but unresponsive,</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>source files were deleted or changed outside Docker,</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>volumes are out of sync,</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><code>make</code> commands no longer work as expected.</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p><strong>Cause:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The Docker environment may be in an inconsistent state — for example, containers are still running but no longer match the current project structure.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Resolution:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>docker ps -a
+docker stop $(docker ps -q)
+docker rm $(docker ps -aq)</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>(Optional) Also remove dangling volumes if necessary:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>docker volume prune</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Or</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make docker prune</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>GitHub API limit (60 calls/hr) is exhausted</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Problem:</strong><br>Composer fails to fetch dependencies because the unauthenticated GitHub API rate limit (60 requests/hour) has been exceeded.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Solutions:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Generate a token at <a href="https://github.com/settings/tokens">https://github.com/settings/tokens</a> (no scopes needed).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Add it to a secret environment file:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>In <code>.env.secret</code>:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>COMPOSER_AUTH={"github-oauth":{"github.com":"XXXXX"}}</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Or Use SSH instead of HTTPS:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>If you have SSH access set up:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>{
+ "type": "vcs",
+ "url": "git@github.com:solidbunch/starter-kit-theme.git"
+}</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>This avoids GitHub API calls entirely and always uses <code>git clone</code>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>🛠️ Docker Disk Troubleshooting</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Quick Checks</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">docker system df          # Overall Docker usage summary  
+docker ps -s              # Container sizes incl. writable layer (logs)  
+docker images             # Image sizes  
+docker volume ls          # List volumes  
+docker volume prune       # Remove unused volumes  
+docker builder prune      # Clean build cache  
+docker system prune -a    # Remove all unused images, containers, networks</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Check Log Path (Linux)</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">docker inspect --format='{{.LogPath}}' &lt;container_id&gt;
+ls -lh /var/lib/docker/containers/&lt;container_id&gt;/*-json.log</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Check Log Path (Mac)</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">docker inspect --format='{{.LogPath}}' &lt;container_id&gt;
+# Direct file access limited (logs stored inside Docker Desktop VM)</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Check log rotation options</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><code>/etc/docker/daemon.json</code> should contain log rotation settings:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"json"} -->
+<pre class="sk-block-code"><code class="language-json">{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "10"
+  }
+}</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">docker inspect &lt;container-name&gt; --format '{{.HostConfig.LogConfig}}'</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>System Disk Usage</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">df -h                     # Overall disk usage</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>🛠️ MariaDB Troubleshooting</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Crash recovery failed: Bad magic header in tc log</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Error:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"plaintext"} -->
+<pre class="sk-block-code"><code class="language-plaintext">[ERROR] Bad magic header in tc log
+[ERROR] Crash recovery failed.
+[ERROR] Can't init tc log
+[ERROR] Aborting</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p><strong>Cause:</strong> Corrupted <code>tc.log</code> (Transaction Coordinator Log) file.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Solution (safe if you don't use XA transactions):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code {"language":"bash"} -->
+<pre class="sk-block-code"><code class="language-bash">make down
+sudo rm -rf db-data/tc.log
+make up</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>MariaDB will recreate <code>tc.log</code> on the next start.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:paragraph -->
+<p>If problems persist, open an issue and attach the full output of the command.</p>
+<!-- /wp:paragraph -->

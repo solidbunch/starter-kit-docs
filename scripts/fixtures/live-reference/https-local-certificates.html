@@ -1,0 +1,225 @@
+<!-- wp:paragraph -->
+<p>Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Production &amp; Staging</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Enable HTTPS in environment:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Set the protocol in your production or staging environment file:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>APP_PROTOCOL=https</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p><strong>2. Issue TLS Certificates via Let’s Encrypt:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Run the built-in Certbot script:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make ssl</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>This will:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>Read <code>APP_DOMAIN</code> from <code>.env</code></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Temporarily stop NGINX</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Run 🔐 Certbot in standalone mode (<code>port 80</code> must be open publicly)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Save certificate files to:</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>  config/ssl/live/&lt;your-domain&gt;/fullchain.pem
+  config/ssl/live/&lt;your-domain&gt;/privkey.pem</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>Restart NGINX with HTTPS enabled</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>ℹ️ If the certificate already exists, the script skips renewal.<br>⚠️ Ensure <code>port 80</code> is open and not blocked by a firewall or ISP.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Manual Certificates (optional):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>You may manually place your certificates at:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>   config/ssl/live/&lt;your-domain&gt;/fullchain.pem
+   config/ssl/live/&lt;your-domain&gt;/privkey.pem</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>Local Development</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Let’s Encrypt does <strong>not</strong> issue certificates for local domains like <code>.localhost</code>. Use self-signed certificates instead.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Option 1: mkcert (recommended)</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Install <a href="https://github.com/FiloSottile/mkcert"><code>mkcert</code></a> and run:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>mkcert -install
+mkcert myproject.localhost</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>This creates two files, e.g.:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>myproject.localhost.pem
+myproject.localhost-key.pem</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Rename and copy them to:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>config/ssl/live/myproject.localhost/fullchain.pem
+config/ssl/live/myproject.localhost/privkey.pem</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Then update your local environment type file at <code>config/environment/.env.type.local</code>, or create an override file at<br><code>config/environment/.env.type.local.override</code>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>➡️ See <a href="environment-and-secrets.md">Environment Configuration and Secret Management</a> for details.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>APP_PROTOCOL=https</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>Start your environment:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>make up</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>📌 Local HTTPS support assumes your domain matches the certificate. Adjust your <code>/etc/hosts</code> accordingly.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:starter-kit/heading {"level":3,"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h3>Option 2: Manual Self-Signed Certificates</h3>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>Generate self-signed certificates using OpenSSL:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:starter-kit/code -->
+<pre class="sk-block-code"><code>openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout config/ssl/live/myproject.localhost/privkey.pem \
+  -out config/ssl/live/myproject.localhost/fullchain.pem \
+  -subj "/CN=myproject.localhost"</code></pre>
+<!-- /wp:starter-kit/code -->
+
+<!-- wp:paragraph -->
+<p>This creates a self-signed certificate valid for 365 days.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>⚠️ Self-signed certificates will trigger browser warnings. You can bypass them for local development.<br>To avoid warnings, you can add the self-signed certificate to your system's trusted certificates store.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>See <a href="https://letsencrypt.org/docs/certificates-for-localhost/">Letsencrypt Documentation</a> for more details on using self-signed certificates locally.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:starter-kit/heading {"spacers":{"xs":[],"sm":[],"md":[],"lg":[],"xl":[],"xxl":[]}} -->
+<h2>↻ Switching to HTTPS and redirects</h2>
+<!-- /wp:starter-kit/heading -->
+
+<!-- wp:paragraph -->
+<p>The NGINX setup supports both HTTP and HTTPS, with automatic redirection configured via:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><code>config/nginx/config/http.conf.template</code> — used when <code>APP_PROTOCOL=http</code></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><code>config/nginx/config/https.conf.template</code> — used when <code>APP_PROTOCOL=https</code></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>Redirection behavior:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>HTTP → HTTPS</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><code>www.domain</code> → <code>domain</code></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>Configuration is automatically templated and mounted at container start. No manual edits are required in <code>*.conf</code> files.</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->

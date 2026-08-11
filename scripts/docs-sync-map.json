@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "pages": {
+    "advanced-installation-options.md": {
+      "id": 43,
+      "slug": "advanced-installation-options"
+    },
+    "ai-assisted-development.md": {
+      "id": 345,
+      "slug": "ai-assisted-development"
+    },
+    "automatic-backups.md": {
+      "id": 79,
+      "slug": "automatic-backups"
+    },
+    "ci-cd-deployments.md": {
+      "id": 77,
+      "slug": "ci-cd-deployments"
+    },
+    "composer-usage.md": {
+      "id": 217,
+      "slug": "composer-usage"
+    },
+    "database-management.md": {
+      "id": 73,
+      "slug": "database-management"
+    },
+    "docker-images.md": {
+      "id": 69,
+      "slug": "docker-images"
+    },
+    "environment-and-secrets.md": {
+      "id": 65,
+      "slug": "environment-and-secrets"
+    },
+    "https-and-local-certificates.md": {
+      "id": 67,
+      "slug": "https-and-local-certificates"
+    },
+    "infrastructure.md": {
+      "id": 75,
+      "slug": "infrastructure"
+    },
+    "installation.md": {
+      "id": 40,
+      "slug": "installation"
+    },
+    "makefile-reference.md": {
+      "id": 52,
+      "slug": "makefile-reference"
+    },
+    "overview.md": {
+      "id": 38,
+      "slug": "overview"
+    },
+    "platform-notes.md": {
+      "id": 47,
+      "slug": "platform-notes"
+    },
+    "project-architecture-and-structure.md": {
+      "id": 54,
+      "slug": "project-architecture-and-structure"
+    },
+    "sending-emails.md": {
+      "id": 71,
+      "slug": "sending-emails"
+    },
+    "troubleshooting.md": {
+      "id": 81,
+      "slug": "troubleshooting"
+    },
+    "usage.md": {
+      "id": 50,
+      "slug": "usage"
+    }
+  }
+}
