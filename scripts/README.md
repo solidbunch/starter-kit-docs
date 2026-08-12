@@ -1,35 +1,34 @@
 # scripts/ — Docs → WordPress sync
 
-Converts every `.md` file listed in [`../index.md`](../index.md) into `starter-kit/*`/`core/*`
+Converts every `.md` file listed in `../index.md` into `starter-kit/*`/`core/*`
 block **node trees** (`{blockName, attrs, innerBlocks, innerHTML}`), serializes each file's tree
-into Gutenberg block markup by POSTing it to `starter-kit.loc`'s own REST endpoint
+into Gutenberg block markup by POSTing it to the target site's own REST endpoint
 (`POST /wp-json/skt/v1/serialize-blocks`, `starter-kit-addon`'s `BlockTreeSerializer`), and
 publishes the resulting markup to the `doc-page` custom post type (REST base `/wp/v2/doc-page`).
-Runs both by hand from this machine and from CI on every push to `master`
+The target site is whatever `WP_BASE_URL` is set to — the production site (`https://starter-kit.io`)
+when run from CI, or a local dev install (e.g. `http://starter-kit.loc`) when run by hand. Runs
+both by hand from this machine and from CI on every push to `master`
 (`.github/workflows/publish-docs.yml`) — see "Publishing from CI" below.
 
 **The sync script no longer decides block markup's byte shape.** `lib/blocks.mjs` and
 `lib/convert.mjs` only build the node tree — delimiters, `core/` namespace stripping, `attrs`
 JSON encoding, the `"\n\n"` sibling glue, and `wp_kses_post()` are all applied server-side by the
-`skt/v1/serialize-blocks` endpoint. This means **`starter-kit.loc` must be running for every run,
-including `--dry-run`** — markup generation itself is now a live network call, not just the
-live-content diff. See
-`../.claude/plans/architect-plan-migrate-blocks-to-serialize-endpoint.md` for the full migration
-plan.
+`skt/v1/serialize-blocks` endpoint. This means **the target site (`WP_BASE_URL`) must be reachable
+for every run, including `--dry-run`** — markup generation itself is now a live network call, not
+just the live-content diff.
 
 ## Target: `/wp/v2/doc-page`, not `/wp/v2/pages`
 
-`starter-kit.loc` already publishes these docs (17 of 18 today) as a custom post type, `doc-page`
-(hierarchical, REST base `/wp/v2/doc-page`, rewrite slug `docs` baked into the post type's own
-registration — confirmed via `wp eval 'print_r(get_post_type_object("doc-page"));'`). Publishing
-to `/wp/v2/pages` instead would create a second, colliding set of posts at the same
-`/docs/<slug>/` URLs. There is **no synthetic "docs" parent page/post** — `doc-page`'s rewrite
-slug already provides the `/docs/` URL prefix. See `lib/wp.mjs`'s header comment for the full
-detail, including one open note: two of the 17 live `doc-page` posts
-(`advanced-installation-options`, `platform-notes`) have a non-zero `post_parent` (pointing at
-`installation`), which this flat, single-level `index.md` manifest has no way to express — this
-script never sends a `parent` field, so it neither reproduces nor disturbs that existing
-hierarchy.
+The site already publishes these docs as a custom post type, `doc-page` (hierarchical, REST base
+`/wp/v2/doc-page`, rewrite slug `docs` baked into the post type's own registration — confirmed via
+`wp eval 'print_r(get_post_type_object("doc-page"));'`). Publishing to `/wp/v2/pages` instead
+would create a second, colliding set of posts at the same `/docs/<slug>/` URLs. There is **no
+synthetic "docs" parent page/post** — `doc-page`'s rewrite slug already provides the `/docs/` URL
+prefix. See `lib/wp.mjs`'s header comment for the full detail, including one open note: two of the
+live `doc-page` posts (`advanced-installation-options`, `platform-notes`) have a non-zero
+`post_parent` (pointing at `installation`), which this flat, single-level `index.md` manifest has
+no way to express — this script never sends a `parent` field, so it neither reproduces nor
+disturbs that existing hierarchy.
 
 Slugs always follow the manifest-derived value (from the file's title in `index.md`), not any
 previously-live slug — there is no indexing/SEO to preserve on this site, so no override
@@ -47,7 +46,7 @@ renamed from its original `https-local-certificates` slug to match on 2026-08-11
 2. For that user: Users → Profile → Application Passwords → generate one.
 3. Export before running:
    ```bash
-   export WP_BASE_URL=http://starter-kit.loc
+   export WP_BASE_URL=http://starter-kit.loc   # local dev; use https://starter-kit.io for prod
    export WP_USER=<that user's login>
    export WP_APP_PASSWORD=<the generated password>
    ```
@@ -69,9 +68,9 @@ npm run sync:dry
 npm run sync
 # equivalent: node sync-docs.mjs
 
-# --strict: treat converter warnings (e.g. an ordered list split by a nested code block —
-# see Decision 4 in the Stage 1 plan) as fatal. Checked before any network call, including the
-# serialize-blocks call — a --strict abort issues zero requests.
+# --strict: treat converter warnings (e.g. an ordered list split by a nested code block) as
+# fatal. Checked before any network call, including the serialize-blocks call — a --strict
+# abort issues zero requests.
 node sync-docs.mjs --dry-run --strict
 ```
 
@@ -111,14 +110,13 @@ a dedicated test: it serializes every file in `index.md` through the live
 ## What `docs-sync-map.json` is, and why it's committed
 
 A path → WordPress `doc-page` post ID map (`{"usage.md": {"id": 50, "slug": "usage"}}`), used
-instead of custom post meta (Decision 1 in the Stage 1 plan): it needs zero server-side PHP
-changes in `starter-kit-foundation.loc`, at the cost of being a cache rather than the sole source
-of truth — before creating a post, the script probes `GET /wp/v2/doc-page?slug=<slug>` and adopts
-a match instead of creating a duplicate, so a lost/corrupt map self-heals (slower, one extra
-request per page, but correct). It ships pre-seeded with the 17 real `doc-page` IDs (fetched via
-`wp post list --post_type=doc-page --fields=ID,post_name`); `ai-assisted-development.md` is
-deliberately absent — it has no live post yet, so the first run creates it rather than adopting
-an existing one.
+instead of custom post meta: it needs zero server-side PHP changes in `starter-kit-foundation`, at
+the cost of being a cache rather than the sole source of truth — before creating a post, the
+script probes `GET /wp/v2/doc-page?slug=<slug>` and adopts a match instead of creating a
+duplicate, so a lost/corrupt map self-heals (slower, one extra request per page, but correct). It
+ships pre-seeded with the real `doc-page` IDs for every file currently in `index.md` (fetched via
+`wp post list --post_type=doc-page --fields=ID,post_name`); a newly added doc file has no entry
+until its first sync run creates (or adopts) the post.
 
 It is committed so:
 - Every operator's run starts from the same known page-ID state (no local-only drift).
@@ -139,9 +137,9 @@ CI" below.
 
 ## Publishing from CI
 
-`.github/workflows/publish-docs.yml` runs on every push to `master` (no path filter — see
-Decision 4 in `../.claude/plans/architect-plan-docs-fixtures-and-ci-pipeline.md`) and via manual
-`workflow_dispatch` with a `dry_run` boolean input. Two jobs:
+`.github/workflows/publish-docs.yml` runs on every push to `master` (no path filter — the set of
+inputs that changes published output is bigger than just `*.md`, and a no-op run is cheap and
+side-effect-free) and via manual `workflow_dispatch` with a `dry_run` boolean input. Two jobs:
 
 - `test` — checkout, `npm ci`, `npm test`. No secrets referenced. Gates `sync`: a broken node
   builder or manifest parse can never reach a live write request.
@@ -163,8 +161,8 @@ one secret per variable, using the `docs-publisher` user's Application Password 
 
 ### HTTPS is a hard requirement for a CI target
 
-`starter-kit.loc` authenticates with Application Passwords over plain `http://` only because its
-WordPress `environment_type` is `local`:
+A local dev install (e.g. `starter-kit.loc`) authenticates with Application Passwords over plain
+`http://` only because its WordPress `environment_type` is `local`:
 
 ```php
 function wp_is_application_passwords_supported() {
@@ -182,8 +180,8 @@ function wp_is_application_passwords_supported() {
 Whatever site `WP_BASE_URL` points at must already have, independent of this workflow:
 
 - The `docs-publisher` role and an Application Password for it (see "Prerequisites" above — this
-  is the same one-time wp-admin setup, just performed against the CI target instead of
-  `starter-kit.loc`).
+  is the same one-time wp-admin setup, just performed against the production site
+  (`https://starter-kit.io`) instead of a local dev install).
 - The `skt/v1/serialize-blocks` endpoint (`starter-kit-addon`) present and reachable.
 - The `doc-page` custom post type registered, REST base `/wp/v2/doc-page`.
 
