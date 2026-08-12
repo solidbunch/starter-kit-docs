@@ -1,0 +1,110 @@
+name: Publish docs
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Diff only, publish nothing'
+        type: boolean
+        default: false
+
+concurrency:
+  group: publish-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Offline suite only — no secrets are referenced anywhere in this job. It gates the sync
+    # job below so a broken converter/node-builder can never reach a live write request.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Run offline test suite
+        working-directory: scripts
+        run: npm test
+
+  sync:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      WP_BASE_URL: ${{ secrets.WP_BASE_URL }}
+      WP_USER: ${{ secrets.WP_USER }}
+      WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      # Informational, not a gate: sync-docs.mjs exits non-zero from --dry-run only when a live
+      # fetch fails, never because the diff is non-empty — a non-empty diff is the normal case
+      # for a docs change. Always runs (even after a failed step earlier) so the run's byte-level
+      # diff is recorded in the log/summary regardless of outcome. --strict is never passed here
+      # (the doc set has three known, intentional converter warnings that would fail every run).
+      - name: Dry run (diff against live content)
+        if: always()
+        working-directory: scripts
+        run: npm run sync:dry 2>&1 | tee dry-run-output.log
+
+      - name: Append dry-run summary
+        if: always()
+        run: |
+          {
+            echo '### Dry run (diff against live content)'
+            echo
+            echo '```'
+            if [ -f scripts/dry-run-output.log ]; then
+              cat scripts/dry-run-output.log
+            else
+              echo '(dry run did not produce output — an earlier step failed before it ran)'
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Live publish. Skipped entirely when triggered manually with dry_run: true. Always uses
+      # --frozen-map: CI never commits docs-sync-map.json back (Decision 2 — the map self-heals
+      # via slug adoption on the next run). --strict is never passed here either.
+      - name: Publish (live sync)
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.dry_run != 'true'
+        working-directory: scripts
+        run: node sync-docs.mjs --frozen-map 2>&1 | tee sync-output.log
+
+      - name: Append publish summary
+        if: always()
+        run: |
+          {
+            echo '### Publish (live sync)'
+            echo
+            echo '```'
+            if [ -f scripts/sync-output.log ]; then
+              cat scripts/sync-output.log
+            else
+              echo '(skipped — workflow_dispatch requested dry_run, or an earlier step failed before this ran)'
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
