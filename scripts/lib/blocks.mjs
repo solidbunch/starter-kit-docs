@@ -27,20 +27,22 @@
  * heading.
  *
  * IMPORTANT — sourcing, corrected 2026-08-10 (later same day): `paragraph`, `listSection`/
- * `listItem`, and `quote` below are derived from `scripts/fixtures/live-reference/*.html` — the
- * real, verbatim `post_content` of the 17 already-published `doc-page` posts on
- * `starter-kit.loc` — NOT from `fixtures/golden-blocks.html` (Task 1.1's synthetic capture).
- * The synthetic capture assumed `starter-kit/paragraph` and `starter-kit/list-section`/
- * `list-item` were the live convention; they are not (0 occurrences across all 17 live pages).
- * The real, established convention is `core/paragraph` and `core/list`/`core/list-item` — see
- * `.claude/plans/architect-plan-docs-sync-script-stage1.md`'s "Update 2026-08-10 (later same
- * day)" section. `heading`, `code`'s language logic, `separator` remain sourced from
- * `golden-blocks.html`/Task 1.1 as before (still correct), except `code`'s `<pre>` class list,
- * corrected below per the same real-fixture evidence, and `table`, whose real live markup
- * carries a `has-fixed-layout` class on `<table>` not present in the synthetic capture.
+ * `listItem`, and `quote` below were verified against the real, verbatim `post_content` of the
+ * 17 already-published `doc-page` posts on `starter-kit.loc`, captured 2026-08-10 from the live
+ * doc-page `post_content` on `starter-kit.loc` — the live site and the `skt/v1/serialize-blocks`
+ * endpoint are the authority — NOT from an earlier synthetic capture taken during Task 1.1 (no
+ * longer committed). The synthetic capture assumed `starter-kit/paragraph` and
+ * `starter-kit/list-section`/`list-item` were the live convention; they are not (0 occurrences
+ * across all 17 live pages). The real, established convention is `core/paragraph` and
+ * `core/list`/`core/list-item` — see `.claude/plans/architect-plan-docs-sync-script-stage1.md`'s
+ * "Update 2026-08-10 (later same day)" section. `heading`, `code`'s language logic, `separator`
+ * remain sourced from the synthetic capture as before (still correct), except `code`'s `<pre>`
+ * class list, corrected below per the same real-content evidence, and `table`, whose real live
+ * markup carries a `has-fixed-layout` class on `<table>` not present in the synthetic capture.
  *
- * Key rules, confirmed against `scripts/fixtures/live-reference/*.html` (e.g. `installation.html`,
- * `usage.html`, which between them exercise all 7 mapped block types):
+ * Key rules, captured 2026-08-10 from the live doc-page `post_content` on `starter-kit.loc` — the
+ * live site and the `skt/v1/serialize-blocks` endpoint are the authority (e.g. the `installation`
+ * and `usage` pages, which between them exercise all 7 mapped block types):
  * - A block comment's JSON attributes object omits any attribute equal to its block.json
  *   `default` (WordPress's own serializer behavior — `getCommentAttributes()`). `level:2`,
  *   `ordered:false`/absent, `language:"auto"` are therefore never written.
@@ -87,8 +89,9 @@ export function heading(level, contentHtml) {
   if (!Number.isInteger(level) || level < 1 || level > 6) {
     throw new Error(`blocks.heading: level must be an integer 1-6, got ${level}`);
   }
-  // No class attribute: confirmed against all 102 heading instances across the 17 live
-  // fixtures (scripts/fixtures/live-reference/*.html) — real markup wins over golden-blocks.html's
+  // No class attribute: confirmed against all 102 heading instances across the live doc-page
+  // post_content on starter-kit.loc, captured 2026-08-10 — the live site and the
+  // skt/v1/serialize-blocks endpoint are the authority — real markup wins over the earlier
   // synthetic capture, same principle applied to paragraph/list/quote/code/table.
   return {
     blockName: 'starter-kit/heading',
@@ -167,8 +170,10 @@ export function code(language, escapedContent) {
  * markup: `paragraphsHtml` is one already-inline-rendered, entity-escaped HTML string per source
  * paragraph; each becomes its own nested `core/paragraph` InnerBlock node, directly inside one
  * `<blockquote class="wp-block-quote">` — NOT raw `<p>` tags with no block comments (the
- * synthetic Task 1.1 capture's assumption). Confirmed against `scripts/fixtures/live-reference/
- * installation.html` (single- and two-paragraph examples) and `usage.html`.
+ * earlier synthetic capture's assumption). Confirmed against the `installation` and `usage`
+ * pages' live doc-page post_content on starter-kit.loc, captured 2026-08-10 (single- and
+ * two-paragraph examples) — the live site and the skt/v1/serialize-blocks endpoint are the
+ * authority.
  *
  * @param {string[]} paragraphsHtml
  * @returns {{blockName: string, attrs: object, innerBlocks: object[], innerHTML: string}}
@@ -190,10 +195,12 @@ export function quote(paragraphsHtml) {
  * `head` is an array of already-inline-rendered header cell HTML strings (rendered as `<th>`);
  * `bodyRows` is an array of rows, each an array of already-inline-rendered cell HTML strings
  * (rendered as `<td>`). The `<table>` carries class `has-fixed-layout` — present on all 6 live
- * table instances (`scripts/fixtures/live-reference/{usage,makefile-reference,advanced-
- * installation-options,platform-notes}.html`); the synthetic Task 1.1 capture omitted it, real
- * markup wins. Unchanged from before the node-shape migration — the table's own markup carries
- * no InnerBlocks, so it stays a single flat `<figure>`/`<table>` string inside `innerHTML`.
+ * table instances (the `usage`, `makefile-reference`, `advanced-installation-options` and
+ * `platform-notes` pages' live doc-page post_content on starter-kit.loc, captured 2026-08-10 —
+ * the live site and the skt/v1/serialize-blocks endpoint are the authority); the earlier
+ * synthetic capture omitted it, real markup wins. Unchanged from before the node-shape
+ * migration — the table's own markup carries no InnerBlocks, so it stays a single flat
+ * `<figure>`/`<table>` string inside `innerHTML`.
  *
  * @param {string[]} head
  * @param {string[][]} bodyRows
@@ -238,11 +245,12 @@ export function separator() {
 /**
  * `starter-kit/row` > `starter-kit/column` > `core/embed` (YouTube video), special-cased for the
  * single `<!-- embed: URL --> ` marker in `overview.md` (Update 2026-08-10, "one video embed,
- * overview.md only"). Byte shape verified against the live fixture
- * (`scripts/fixtures/live-reference/overview.html:9-15`) — `properties`/`spacers`/`size` JSON
+ * overview.md only"). Byte shape verified against the `overview` page's live doc-page
+ * post_content on starter-kit.loc, captured 2026-08-10 — `properties`/`spacers`/`size` JSON
  * values and the `justify-content-center mt-3 mb-3` row classes are the real captured values,
- * not invented. This is a special-cased marker, not a general embed system — if a second video
- * ever gets added, extend `convert.mjs`'s handling then, don't generalize speculatively now.
+ * not invented — the live site and the skt/v1/serialize-blocks endpoint are the authority. This
+ * is a special-cased marker, not a general embed system — if a second video ever gets added,
+ * extend `convert.mjs`'s handling then, don't generalize speculatively now.
  *
  * The `properties`/`spacers`/`size` values below are copied LITERALLY from the pre-migration
  * string-emitting version of this function — including the `[]` vs `{}` distinction inside each

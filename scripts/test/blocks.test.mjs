@@ -6,10 +6,11 @@ import { paragraph, heading, listSection, listItem, code, quote, table, separato
 // Every builder returns a `{blockName, attrs, innerBlocks, innerHTML}` node object — the JSON
 // shape consumed by the `POST /wp-json/skt/v1/serialize-blocks` endpoint. These tests assert
 // node shape by deep-equality, not markup-string matching: byte-shape verification now happens
-// against the live endpoint (Task 3.1's integration test), not offline. The content examples
-// below are kept identical to the pre-migration string-emitting tests so the innerHTML strings
-// stay tied to real live content (`scripts/fixtures/live-reference/{installation,usage,
-// overview}.html`).
+// against `npm run sync:dry`'s live diff, not offline. The content examples below are kept
+// identical to the pre-migration string-emitting tests so the innerHTML strings stay tied to
+// real content captured 2026-08-10 from the live doc-page post_content on starter-kit.loc (the
+// `installation`, `usage` and `overview` pages) — the live site and the skt/v1/serialize-blocks
+// endpoint are the authority.
 
 // --- paragraph() ---------------------------------------------------------------------------
 

@@ -56,6 +56,16 @@ scripts/node_modules/
 .playwright-mcp/
 
 
+#===================================#
+#   No HTML is ever committed here  #
+#===================================#
+# This is a docs repo — content lives in Markdown, converted to Gutenberg block markup only at
+# sync time. Generated markup lives in the gitignored .sync-output/ above, or on the WordPress
+# site itself; it is never a committed artifact (see
+# .claude/plans/architect-plan-docs-fixtures-and-ci-pipeline.md, Decision 1).
+*.html
+
+
 # ===================================#
 #          Claude Code               #
 # ===================================#

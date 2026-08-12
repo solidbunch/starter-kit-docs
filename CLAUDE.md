@@ -31,3 +31,5 @@ rather than deleting it.
 - No code changes happen here — if a task involves scripts/CI to sync this content elsewhere,
   those live in this repo too (e.g. `.github/workflows/`), but the docs content itself stays
   plain Markdown, no front-matter, no build step required to read it.
+- No HTML is ever committed to this repo (`*.html` is gitignored) — generated Gutenberg markup
+  lives only in the gitignored `scripts/.sync-output/` or on the WordPress site itself.

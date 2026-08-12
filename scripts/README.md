@@ -5,8 +5,8 @@ block **node trees** (`{blockName, attrs, innerBlocks, innerHTML}`), serializes 
 into Gutenberg block markup by POSTing it to `starter-kit.loc`'s own REST endpoint
 (`POST /wp-json/skt/v1/serialize-blocks`, `starter-kit-addon`'s `BlockTreeSerializer`), and
 publishes the resulting markup to the `doc-page` custom post type (REST base `/wp/v2/doc-page`).
-Stage 1 only (see `../.claude/plans/architect-plan-docs-sync-script-stage1.md`): run by hand from
-this machine, not from CI.
+Runs both by hand from this machine and from CI on every push to `master`
+(`.github/workflows/publish-docs.yml`) — see "Publishing from CI" below.
 
 **The sync script no longer decides block markup's byte shape.** `lib/blocks.mjs` and
 `lib/convert.mjs` only build the node tree — delimiters, `core/` namespace stripping, `attrs`
@@ -89,12 +89,24 @@ converter warning was emitted.
 cd scripts && npm test
 # equivalent: node --test
 ```
-Covers the manifest parser, inline renderer/link rewriter, and every block emitter. `paragraph`,
-`listSection`/`listItem`, and `quote` are checked byte-for-byte against real live markup in
-`fixtures/live-reference/*.html` (dumped verbatim from the 17 already-published `doc-page`
-posts); `heading` remains checked against the synthetic `fixtures/golden-blocks.html` capture
-(still correct); `code`, `table`, and `separator` are checked against the live fixtures too
-(their shape needed small corrections — see `lib/blocks.mjs`'s header comment for detail).
+
+Four offline test files, no credentials, no network:
+
+- `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 18 entries, in order, with
+  matching slugs), plus the link-target/file-existence error paths.
+- `test/inline.test.mjs` — inline HTML rendering, link rewriting, and entity escaping.
+- `test/convert.test.mjs` — token-stream → node-tree mapping, including the split-and-warn cases.
+- `test/blocks.test.mjs` — every block emitter (`paragraph`, `heading`, `listSection`/`listItem`,
+  `code`, `quote`, `table`, `separator`, `embed`), asserted by node-shape deep-equality
+  (`{blockName, attrs, innerBlocks, innerHTML}`), not markup-string matching.
+
+`npm test` should always report `pass 38, fail 0, skipped 0` — zero skips, since none of these
+tests hold credentials or touch the network.
+
+**Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
+a dedicated test: it serializes every file in `index.md` through the live
+`skt/v1/serialize-blocks` endpoint and diffs the result against that page's current live
+`content.raw`, for all 18 pages, every time it's run — see "Running" above.
 
 ## What `docs-sync-map.json` is, and why it's committed
 
@@ -115,11 +127,89 @@ It is committed so:
 - Entries are **never deleted**, even when a file is removed from `index.md` — the entry is what
   lets the draft-on-removal pass (below) find that page on every subsequent run.
 
-**Revisit trigger (Stage 3, not built yet):** once this pipeline runs from a hosted GitHub
-Actions runner, it can no longer commit an updated map back to git after creating pages. At that
-point either the map is fully populated and effectively frozen (new doc files are rare), or the
-custom-post-meta approach (`register_meta` + a `rest_page_query` filter in
-`starter-kit-foundation.loc`) gets built then, as its own scoped, reviewed change.
+**CI and the map: frozen by design, not by omission.** The pipeline runs from a hosted GitHub
+Actions runner and cannot commit an updated map back to git, so it always passes `--frozen-map`
+(see `--help` above). This is safe, not a stopgap: `syncPage()` probes by slug before creating
+anything, so a doc file with no map entry is adopted by slug on the *next* run instead of being
+duplicated — the map is a cache, not the source of truth for identity. The one thing this changes
+for an operator: after adding a **new** doc file, run `npm run sync` once locally (without
+`--frozen-map`) and commit the updated `docs-sync-map.json`, so `draftRemovedPages()` can find
+that page by map entry if the file is ever later removed from `index.md`. See "Publishing from
+CI" below.
+
+## Publishing from CI
+
+`.github/workflows/publish-docs.yml` runs on every push to `master` (no path filter — see
+Decision 4 in `../.claude/plans/architect-plan-docs-fixtures-and-ci-pipeline.md`) and via manual
+`workflow_dispatch` with a `dry_run` boolean input. Two jobs:
+
+- `test` — checkout, `npm ci`, `npm test`. No secrets referenced. Gates `sync`: a broken node
+  builder or manifest parse can never reach a live write request.
+- `sync` — `needs: test`. Runs `npm run sync:dry` (informational, always runs, never fails the
+  job on a non-empty diff — see "Running" above), then `node sync-docs.mjs --frozen-map` (skipped
+  when `workflow_dispatch`'s `dry_run` input is `true`). **Never runs with `--strict`** — the doc
+  set has three known, intentional converter warnings (an ordered list split by a nested code
+  fence) that would fail every single run. Both steps' output is teed to a file and appended to
+  the run's summary (`$GITHUB_STEP_SUMMARY`) so success or failure is legible without opening
+  logs.
+
+### Repository secrets
+
+The `sync` job reads three repository secrets into `WP_BASE_URL` / `WP_USER` /
+`WP_APP_PASSWORD` — the same three environment variables described under "Prerequisites" above.
+Create them once: repo **Settings → Secrets and variables → Actions → New repository secret**,
+one secret per variable, using the `docs-publisher` user's Application Password for
+`WP_APP_PASSWORD`.
+
+### HTTPS is a hard requirement for a CI target
+
+`starter-kit.loc` authenticates with Application Passwords over plain `http://` only because its
+WordPress `environment_type` is `local`:
+
+```php
+function wp_is_application_passwords_supported() {
+	return is_ssl() || 'local' === wp_get_environment_type();
+}
+```
+
+(`wp-core/wp-includes/user.php`). That exemption does not travel to a real, hosted target. If
+`WP_BASE_URL` points at anything other than a `local`-environment install, it **must** be
+`https://` or every request will fail authentication with an
+`application_passwords_disabled`-shaped error, not a helpful one.
+
+### Target site prerequisites
+
+Whatever site `WP_BASE_URL` points at must already have, independent of this workflow:
+
+- The `docs-publisher` role and an Application Password for it (see "Prerequisites" above — this
+  is the same one-time wp-admin setup, just performed against the CI target instead of
+  `starter-kit.loc`).
+- The `skt/v1/serialize-blocks` endpoint (`starter-kit-addon`) present and reachable.
+- The `doc-page` custom post type registered, REST base `/wp/v2/doc-page`.
+
+### If the target isn't reachable from a GitHub-hosted runner
+
+`runs-on: ubuntu-latest` can only reach a publicly resolvable host. If `WP_BASE_URL` is only
+reachable on a private network (e.g. a LAN-only staging box), change `runs-on:` on the `sync` job
+to a self-hosted runner label — nothing else in the workflow needs to change.
+
+### The map stays frozen in CI
+
+`sync` always passes `--frozen-map`: CI cannot commit `docs-sync-map.json` back to the repo. This
+is safe by construction (see "What `docs-sync-map.json` is, and why it's committed" above) — a
+newly created page is adopted by slug on its next run rather than duplicated. The one follow-up
+an operator owes after adding a brand-new doc file: run `npm run sync` once locally (without
+`--frozen-map`) and commit the resulting map update, so a later removal of that file from
+`index.md` can still be found and drafted.
+
+### Notifications
+
+GitHub does **not** guarantee email notifications on a failed run by default — it's an opt-in
+setting ("Email" under Actions notification preferences, with an "Only notify for failed
+workflows" checkbox). Verify your own notification setting once
+(github.com → profile → Settings → Notifications → Actions) rather than assuming a failed publish
+will reach your inbox unprompted. The Actions tab and the run summary are the reliable source of
+truth regardless.
 
 ## One-way sync — read this if you have WP admin access
 
