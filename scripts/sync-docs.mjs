@@ -19,18 +19,22 @@ const repoRoot = path.resolve(__dirname, '..');
 const mapPath = path.join(__dirname, 'docs-sync-map.json');
 const outDir = path.join(repoRoot, '.sync-output');
 
-const USAGE = `Usage: node sync-docs.mjs [--dry-run] [--strict] [--help]
+const USAGE = `Usage: node sync-docs.mjs [--dry-run] [--strict] [--frozen-map] [--help]
 
 Converts every *.md file listed in index.md into starter-kit/* (and core/*) block node trees,
 serializes each one into Gutenberg block markup via WP_BASE_URL's REST API
 (POST skt/v1/serialize-blocks), and publishes it to the /wp/v2/doc-page endpoint.
 
 Options:
-  --dry-run   Write serialized markup to .sync-output/<slug>.html and diff it against the live
-              page's content.raw (?context=edit). Never calls a write endpoint.
-  --strict    Treat converter warnings (e.g. an ordered list split by a nested code block) as
-              fatal: exit non-zero if any warning was emitted. Checked before any network call.
-  --help      Print this message and exit 0.
+  --dry-run     Write serialized markup to .sync-output/<slug>.html and diff it against the live
+                page's content.raw (?context=edit). Never calls a write endpoint.
+  --strict      Treat converter warnings (e.g. an ordered list split by a nested code block) as
+                fatal: exit non-zero if any warning was emitted. Checked before any network call.
+  --frozen-map  Never write docs-sync-map.json. If the run adopted or created entries that would
+                otherwise have been persisted, print a notice per entry instead of writing the
+                file and continue — never a failure. Intended for CI, where the map is not
+                committed back (see scripts/README.md, "Publishing from CI").
+  --help        Print this message and exit 0.
 
 Required environment variables (needed even for --dry-run: markup is no longer generated locally,
 it is serialized by a live WordPress endpoint):
@@ -42,10 +46,11 @@ See scripts/README.md for the full walkthrough.
 `;
 
 function parseArgs(argv) {
-  const args = { dryRun: false, strict: false, help: false };
+  const args = { dryRun: false, strict: false, frozenMap: false, help: false };
   for (const arg of argv) {
     if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--strict') args.strict = true;
+    else if (arg === '--frozen-map') args.frozenMap = true;
     else if (arg === '--help' || arg === '-h') args.help = true;
     else {
       throw new Error(`sync-docs: unrecognized argument "${arg}" (see --help)`);
@@ -106,7 +111,8 @@ async function main() {
     process.exit(1);
   }
 
-  const map = readMap(mapPath);
+  const map = readMap(mapPath, credentials.baseUrl);
+  const mapSnapshotBeforeRun = structuredClone(map.pages);
 
   // Serialize each file's node tree into markup via the live endpoint — one POST per file
   // (the first network calls this run makes). A failure here is scoped to that one file: it is
@@ -189,8 +195,17 @@ async function main() {
     else console.log(`✗ failed to draft ${result.slug} (#${result.id}): ${result.error}`);
   }
 
-  writeMap(mapPath, map);
-  console.log(`\nWrote ${mapPath} — commit this if it changed (git diff scripts/docs-sync-map.json).`);
+  if (args.frozenMap) {
+    for (const [file, entry] of Object.entries(map.pages)) {
+      const before = mapSnapshotBeforeRun[file];
+      if (!before || before.id !== entry.id || before.slug !== entry.slug) {
+        console.log(`note: map entry ${file} → #${entry.id} was not persisted (--frozen-map)`);
+      }
+    }
+  } else {
+    writeMap(mapPath, credentials.baseUrl, map);
+    console.log(`\nWrote ${mapPath} — commit this if it changed (git diff scripts/docs-sync-map.json).`);
+  }
 
   const failed = [...results, ...draftResults, ...serializeFailures].filter((r) => r.action === 'failed');
   const created = results.filter((r) => r.action === 'created').length;

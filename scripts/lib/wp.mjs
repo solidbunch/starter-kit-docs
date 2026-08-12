@@ -72,15 +72,23 @@ export function createWpClient({ baseUrl, user, appPassword }) {
    * `doc-page` call sites, which keeps their behaviour and URLs identical.
    */
   async function requestPath(pathUnderWpJson, { method = 'GET', body } = {}) {
-    const res = await fetch(`${baseUrl}/wp-json/${pathUnderWpJson}`, {
-      method,
-      headers: {
-        Authorization: authHeader,
-        Accept: 'application/json',
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    let res;
+    try {
+      res = await fetch(`${baseUrl}/wp-json/${pathUnderWpJson}`, {
+        method,
+        headers: {
+          Authorization: authHeader,
+          Accept: 'application/json',
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (cause) {
+      throw new Error(
+        `wp: could not reach ${baseUrl} (${cause.message}) — check WP_BASE_URL and the runner's network access`,
+        { cause }
+      );
+    }
 
     if (res.status === 401) {
       throw new Error('wp: 401 Unauthorized — check WP_USER / WP_APP_PASSWORD');
