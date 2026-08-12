@@ -20,6 +20,17 @@ concurrency:
 permissions:
   contents: read
 
+# Required for correct exit-code propagation through every `cmd | tee file` step below. Left
+# unset, GitHub Actions' default shell for `run:` is `bash -e {0}` — NO pipefail — so a failing
+# command piped into `tee` reports `tee`'s own (successful) exit code, and the job goes green even
+# when sync-docs.mjs actually failed (verified: this silently happened on this workflow's first
+# real run, missing WP_* secrets, before this default existed — GitHub's own docs previously
+# stated pipefail as the unconditional default; that was wrong and has since been corrected,
+# see actions/runner#1955). `shell: bash` switches to `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     # Offline suite only — no secrets are referenced anywhere in this job. It gates the sync
@@ -27,9 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -57,9 +68,9 @@ jobs:
       WP_USER: ${{ secrets.WP_USER }}
       WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
