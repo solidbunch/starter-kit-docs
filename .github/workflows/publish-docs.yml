@@ -2,7 +2,7 @@ name: Publish docs
 
 on:
   push:
-    branches: [master]
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -10,8 +10,11 @@ on:
         type: boolean
         default: false
 
+# Each branch targets its own site (see the `sync` job's `environment:`), so a develop push and a
+# main push never need to queue behind each other — only two runs against the *same* site would
+# race, which a per-branch group already prevents.
 concurrency:
-  group: publish-docs
+  group: publish-docs-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -44,6 +47,11 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # main -> the `production` environment (starter-kit.io), develop -> `development`
+    # (develop.starter-kit.io) — see README.MD's "Publishing setup" for the two environments'
+    # secrets. Same secret names, different values per GitHub Environment, same idea as GitLab
+    # CI's per-environment variable scoping used by the sibling starter-kit-foundation repo.
+    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
     env:
       WP_BASE_URL: ${{ secrets.WP_BASE_URL }}
       WP_USER: ${{ secrets.WP_USER }}

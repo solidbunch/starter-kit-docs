@@ -7,7 +7,7 @@ into Gutenberg block markup by POSTing it to the target site's own REST endpoint
 publishes the resulting markup to the `doc-page` custom post type (REST base `/wp/v2/doc-page`).
 The target site is whatever `WP_BASE_URL` is set to — the production site (`https://starter-kit.io`)
 when run from CI, or a local dev install (e.g. `http://starter-kit.loc`) when run by hand. Runs
-both by hand from this machine and from CI on every push to `master`
+both by hand from this machine and from CI on every push to `main`
 (`.github/workflows/publish-docs.yml`) — see "Publishing from CI" below.
 
 **The sync script no longer decides block markup's byte shape.** `lib/blocks.mjs` and
@@ -137,9 +137,10 @@ CI" below.
 
 ## Publishing from CI
 
-`.github/workflows/publish-docs.yml` runs on every push to `master` (no path filter — the set of
-inputs that changes published output is bigger than just `*.md`, and a no-op run is cheap and
-side-effect-free) and via manual `workflow_dispatch` with a `dry_run` boolean input. Two jobs:
+`.github/workflows/publish-docs.yml` runs on every push to `main` or `develop` (no path filter
+— the set of inputs that changes published output is bigger than just `*.md`, and a no-op run is
+cheap and side-effect-free) and via manual `workflow_dispatch` with a `dry_run` boolean input. Two
+jobs:
 
 - `test` — checkout, `npm ci`, `npm test`. No secrets referenced. Gates `sync`: a broken node
   builder or manifest parse can never reach a live write request.
@@ -151,13 +152,21 @@ side-effect-free) and via manual `workflow_dispatch` with a `dry_run` boolean in
   the run's summary (`$GITHUB_STEP_SUMMARY`) so success or failure is legible without opening
   logs.
 
-### Repository secrets
+### Two targets, one per branch: GitHub Environments, not repository secrets
 
-The `sync` job reads three repository secrets into `WP_BASE_URL` / `WP_USER` /
-`WP_APP_PASSWORD` — the same three environment variables described under "Prerequisites" above.
-Create them once: repo **Settings → Secrets and variables → Actions → New repository secret**,
-one secret per variable, using the `docs-publisher` user's Application Password for
-`WP_APP_PASSWORD`.
+`sync` sets `environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}` —
+`main` resolves to the `production` GitHub Environment (`starter-kit.io`), `develop` to
+`development` (`develop.starter-kit.io`). `WP_BASE_URL` / `WP_USER` / `WP_APP_PASSWORD` must be
+**environment secrets** (Settings → Environments → *env* → Environment secrets), not repository
+secrets — a repository secret has one value shared by every branch, which would publish both
+branches to the same site. Same secret *names*, different values per environment, same idea as
+the app repos' GitLab CI environment-scoped variables (see `../ci-cd-deployments.md`).
+
+Each target site needs its own `docs-publisher` user + Application Password (see "Prerequisites"
+above, performed once per site). Because `docs-sync-map.json` is keyed by base URL (see below),
+the very first CI run against a target with no existing map entry for it adopts each page by
+slug instead of creating a duplicate if a matching post already exists there, or creates it fresh
+if it doesn't — safe either way, just one extra probe request per page on that first run.
 
 ### HTTPS is a hard requirement for a CI target
 
@@ -180,8 +189,8 @@ function wp_is_application_passwords_supported() {
 Whatever site `WP_BASE_URL` points at must already have, independent of this workflow:
 
 - The `docs-publisher` role and an Application Password for it (see "Prerequisites" above — this
-  is the same one-time wp-admin setup, just performed against the production site
-  (`https://starter-kit.io`) instead of a local dev install).
+  is the same one-time wp-admin setup, performed once per target site: production
+  `https://starter-kit.io` and development `https://develop.starter-kit.io`).
 - The `skt/v1/serialize-blocks` endpoint (`starter-kit-addon`) present and reachable.
 - The `doc-page` custom post type registered, REST base `/wp/v2/doc-page`.
 

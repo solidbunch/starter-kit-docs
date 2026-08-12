@@ -22,7 +22,10 @@ WordPress site (as the `doc-page` custom post type, not generic Pages) by the sy
 [`scripts/`](scripts/). Two ways it runs:
 
 1. **Automatically** — [`.github/workflows/publish-docs.yml`](.github/workflows/publish-docs.yml)
-   runs on every push to `master`: an offline test suite gates a live publish.
+   runs on every push to `main` or `develop`: an offline test suite gates a live publish.
+   `main` publishes to the **production** site (`starter-kit.io`), `develop` to the
+   **development** site (`develop.starter-kit.io`) — same split as the app repos' own
+   dev/prod deploys (see `ci-cd-deployments.md`).
 2. **By hand** — from a local checkout, for previewing changes before they're pushed (see
    `scripts/README.md` for the full CLI walkthrough).
 
@@ -32,26 +35,38 @@ WP admin access.
 
 ### Publishing setup (GitHub Actions)
 
+The workflow picks its target by branch via a GitHub **Environment** (`environment:` on the
+`sync` job) — `main` → `production`, `develop` → `development` — so the same three secret
+*names* can hold different values per branch, same idea as the app repos' GitLab CI
+environment-scoped variables.
+
 To make the automatic pipeline work, in the GitHub repo set:
 
-1. **Settings → Secrets and variables → Actions → New repository secret** — add all three:
+1. **Settings → Environments → New environment** — create two: `production` and `development`.
 
-   | Secret | Value | Notes |
-   |---|---|---|
-   | `WP_BASE_URL` | e.g. `https://starter-kit.io` | **Must be `https://`** unless the target site's WordPress `environment_type` is `local` — Application Passwords are rejected over plain HTTP otherwise. |
-   | `WP_USER` | the `docs-publisher` user's login | See "Target site prerequisites" below for how that role/user is created. |
-   | `WP_APP_PASSWORD` | that user's Application Password | Generated in wp-admin → Users → Profile → Application Passwords. |
+2. **For each environment, add all three secrets** (environment secrets, not repository secrets
+   — that's what makes the same name resolve differently per branch):
 
-2. **Target site prerequisites** (one-time, in wp-admin on the site `WP_BASE_URL` points at):
+   | Secret | `production` value | `development` value | Notes |
+   |---|---|---|---|
+   | `WP_BASE_URL` | `https://starter-kit.io` | `https://develop.starter-kit.io` | **Must be `https://`** unless the target's WordPress `environment_type` is `local` — Application Passwords are rejected over plain HTTP otherwise. |
+   | `WP_USER` | the `docs-publisher` user's login on that site | — | See "Target site prerequisites" below for how that role/user is created. |
+   | `WP_APP_PASSWORD` | that user's Application Password | — | Generated in wp-admin → Users → Profile → Application Passwords, one per site. |
+
+3. **Target site prerequisites** (one-time, in wp-admin on **each** of the two sites):
    - a `docs-publisher` role (only `edit_pages`/`edit_published_pages`/`publish_pages`/`edit_others_pages`
      — explicitly not `unfiltered_html` or `manage_options`) assigned to a dedicated user
    - the `skt/v1/serialize-blocks` REST endpoint present (`starter-kit-addon`) and the `doc-page`
      custom post type registered
 
-3. **If the target isn't publicly reachable** (e.g. a LAN-only staging box) — change `runs-on:`
+4. (Recommended for `production`) **Settings → Environments → production → Deployment
+   protection rules** — require a reviewer before a `main` push actually publishes live, same
+   recommendation as the app repos' "Protected environments" for their prod deploy.
+
+5. **If a target isn't publicly reachable** (e.g. a LAN-only staging box) — change `runs-on:`
    on the workflow's `sync` job to a self-hosted runner label; nothing else needs to change.
 
-4. (Recommended) verify your GitHub notification settings once — profile → Settings →
+6. (Recommended) verify your GitHub notification settings once — profile → Settings →
    Notifications → Actions — email-on-failure is opt-in, not a default.
 
 No self-hosted runner is required for a publicly reachable target — this pipeline targets
