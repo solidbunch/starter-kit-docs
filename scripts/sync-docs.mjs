@@ -23,7 +23,7 @@ const USAGE = `Usage: node sync-docs.mjs [--dry-run] [--strict] [--frozen-map] [
 
 Converts every *.md file listed in index.md into starter-kit/* (and core/*) block node trees,
 serializes each one into Gutenberg block markup via WP_BASE_URL's REST API
-(POST skt/v1/serialize-blocks), and publishes it to the /wp/v2/doc-page endpoint.
+(POST skt/v1/serialize-blocks), and publishes it to the /skt/v1/doc-page endpoint.
 
 Options:
   --dry-run     Write serialized markup to .sync-output/<slug>.html and diff it against the live

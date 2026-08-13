@@ -50,14 +50,20 @@ To make the automatic pipeline work, in the GitHub repo set:
    | Secret | `production` value | `development` value | Notes |
    |---|---|---|---|
    | `WP_BASE_URL` | `https://starter-kit.io` | `https://develop.starter-kit.io` | **Must be `https://`** unless the target's WordPress `environment_type` is `local` — Application Passwords are rejected over plain HTTP otherwise. |
-   | `WP_USER` | the `docs-publisher` user's login on that site | — | See "Target site prerequisites" below for how that role/user is created. |
+   | `WP_USER` | a dedicated user's login, assigned the `docs-publisher` role, on that site | — | See "Target site prerequisites" below — the role itself is created automatically. |
    | `WP_APP_PASSWORD` | that user's Application Password | — | Generated in wp-admin → Users → Profile → Application Passwords, one per site. |
 
 3. **Target site prerequisites** (one-time, in wp-admin on **each** of the two sites):
-   - a `docs-publisher` role (only `edit_pages`/`edit_published_pages`/`publish_pages`/`edit_others_pages`
-     — explicitly not `unfiltered_html` or `manage_options`) assigned to a dedicated user
+   - `starter-kit-addon` active — it creates the `docs-publisher` role automatically (`read` plus
+     ten doc-page-scoped primitives: `edit_doc_pages`, `edit_others_doc_pages`,
+     `edit_published_doc_pages`, `edit_private_doc_pages`, `publish_doc_pages`,
+     `read_private_doc_pages`, `delete_doc_pages`, `delete_others_doc_pages`,
+     `delete_published_doc_pages`, `delete_private_doc_pages` — explicitly not
+     `edit_pages`/`edit_published_pages`/`publish_pages`/`edit_others_pages` or any other core Page
+     capability, so it cannot touch core WP Pages, and explicitly not `unfiltered_html` or
+     `manage_options`); the only manual step is assigning that role to a dedicated user
    - the `skt/v1/serialize-blocks` REST endpoint present (`starter-kit-addon`) and the `doc-page`
-     custom post type registered
+     custom post type registered under the `skt/v1` REST namespace
 
 4. (Recommended for `production`) **Settings → Environments → production → Deployment
    protection rules** — require a reviewer before a `main` push actually publishes live, same

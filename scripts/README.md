@@ -4,7 +4,7 @@ Converts every `.md` file listed in `../index.md` into `starter-kit/*`/`core/*`
 block **node trees** (`{blockName, attrs, innerBlocks, innerHTML}`), serializes each file's tree
 into Gutenberg block markup by POSTing it to the target site's own REST endpoint
 (`POST /wp-json/skt/v1/serialize-blocks`, `starter-kit-addon`'s `BlockTreeSerializer`), and
-publishes the resulting markup to the `doc-page` custom post type (REST base `/wp/v2/doc-page`).
+publishes the resulting markup to the `doc-page` custom post type (REST base `/wp-json/skt/v1/doc-page`).
 The target site is whatever `WP_BASE_URL` is set to — the production site (`https://starter-kit.io`)
 when run from CI, or a local dev install (e.g. `http://starter-kit.loc`) when run by hand. Runs
 both by hand from this machine and from CI on every push to `main`
@@ -17,10 +17,11 @@ JSON encoding, the `"\n\n"` sibling glue, and `wp_kses_post()` are all applied s
 for every run, including `--dry-run`** — markup generation itself is now a live network call, not
 just the live-content diff.
 
-## Target: `/wp/v2/doc-page`, not `/wp/v2/pages`
+## Target: `/skt/v1/doc-page`, not `/wp/v2/pages`
 
-The site already publishes these docs as a custom post type, `doc-page` (hierarchical, REST base
-`/wp/v2/doc-page`, rewrite slug `docs` baked into the post type's own registration — confirmed via
+The site already publishes these docs as a custom post type, `doc-page` (hierarchical, registered
+under the `skt/v1` REST namespace — REST base `/wp-json/skt/v1/doc-page` — rewrite slug `docs`
+baked into the post type's own registration — confirmed via
 `wp eval 'print_r(get_post_type_object("doc-page"));'`). Publishing to `/wp/v2/pages` instead
 would create a second, colliding set of posts at the same `/docs/<slug>/` URLs. There is **no
 synthetic "docs" parent page/post** — `doc-page`'s rewrite slug already provides the `/docs/` URL
@@ -30,6 +31,15 @@ live `doc-page` posts (`advanced-installation-options`, `platform-notes`) have a
 no way to express — this script never sends a `parent` field, so it neither reproduces nor
 disturbs that existing hierarchy.
 
+The post type used to be registered under core's `wp/v2` namespace, and this script used to target
+`/wp/v2/doc-page` — moved to `skt/v1` by `starter-kit-addon`'s `docs-publisher-role` plan, so the
+CI publishing identity no longer needs the core `edit_pages` capability just to pass the theme's
+REST API whitelist (which only ever admits its own `skt/v1` namespace). **Deploy-ordering note:**
+if this docs repo's Stage 2 (this file and `lib/wp.mjs`) ships before `starter-kit-addon` registers
+`doc-page` under `skt/v1`, every request here 404s against `/wp-json/skt/v1/doc-page` until the
+addon deploy lands — self-healing, not destructive, since no write ever partially succeeds; it
+simply starts working again on the next run once both sides are deployed.
+
 Slugs always follow the manifest-derived value (from the file's title in `index.md`), not any
 previously-live slug — there is no indexing/SEO to preserve on this site, so no override
 mechanism exists for slug mismatches. `https-and-local-certificates.md`'s live post was
@@ -37,12 +47,19 @@ renamed from its original `https-local-certificates` slug to match on 2026-08-11
 
 ## Prerequisites
 
-1. In wp-admin, create a `docs-publisher` role with only `edit_pages`, `edit_published_pages`,
-   `publish_pages`, `edit_others_pages` — explicitly **not** `unfiltered_html`,
-   `manage_options`, `edit_theme_options`, or plugin/user management. Assign it to a dedicated
-   user. (Manual, wp-admin only — not built by this script.) `edit_pages` is also what the
-   `skt/v1/serialize-blocks` endpoint itself requires, so this one role covers both the
-   serialization call and the `doc-page` publishing calls — no separate permission to grant.
+1. The `docs-publisher` role is provided automatically by `starter-kit-addon` — it creates the
+   role on plugin activation and re-converges it on every plugin version change, so it needs no
+   manual setup on any target site. It holds `read` plus the ten doc-page-scoped primitives
+   (`edit_doc_pages`, `edit_others_doc_pages`, `edit_published_doc_pages`,
+   `edit_private_doc_pages`, `publish_doc_pages`, `read_private_doc_pages`, `delete_doc_pages`,
+   `delete_others_doc_pages`, `delete_published_doc_pages`, `delete_private_doc_pages`) —
+   explicitly **not** `edit_pages`/`edit_published_pages`/`publish_pages`/`edit_others_pages` or
+   any other core Page capability, so it cannot touch core WP Pages at all, and explicitly not
+   `unfiltered_html`, `manage_options`, `edit_theme_options`, or plugin/user management. The only
+   manual steps left are: assign the role to a dedicated user (Users → Add New, or edit an
+   existing user's role). `edit_doc_pages` is also what the `skt/v1/serialize-blocks` endpoint
+   itself requires, so this one role covers both the serialization call and the `doc-page`
+   publishing calls — no separate permission to grant.
 2. For that user: Users → Profile → Application Passwords → generate one.
 3. Export before running:
    ```bash
@@ -112,7 +129,7 @@ a dedicated test: it serializes every file in `index.md` through the live
 A path → WordPress `doc-page` post ID map (`{"usage.md": {"id": 50, "slug": "usage"}}`), used
 instead of custom post meta: it needs zero server-side PHP changes in `starter-kit-foundation`, at
 the cost of being a cache rather than the sole source of truth — before creating a post, the
-script probes `GET /wp/v2/doc-page?slug=<slug>` and adopts a match instead of creating a
+script probes `GET /wp-json/skt/v1/doc-page?slug=<slug>` and adopts a match instead of creating a
 duplicate, so a lost/corrupt map self-heals (slower, one extra request per page, but correct). It
 ships pre-seeded with the real `doc-page` IDs for every file currently in `index.md` (fetched via
 `wp post list --post_type=doc-page --fields=ID,post_name`); a newly added doc file has no entry
@@ -162,8 +179,9 @@ secrets — a repository secret has one value shared by every branch, which woul
 branches to the same site. Same secret *names*, different values per environment, same idea as
 the app repos' GitLab CI environment-scoped variables (see `../ci-cd-deployments.md`).
 
-Each target site needs its own `docs-publisher` user + Application Password (see "Prerequisites"
-above, performed once per site). Because `docs-sync-map.json` is keyed by base URL (see below),
+Each target site needs its own dedicated user assigned the `docs-publisher` role (created
+automatically by `starter-kit-addon`, see "Prerequisites" above) plus an Application Password for
+that user (performed once per site). Because `docs-sync-map.json` is keyed by base URL (see below),
 the very first CI run against a target with no existing map entry for it adopts each page by
 slug instead of creating a duplicate if a matching post already exists there, or creates it fresh
 if it doesn't — safe either way, just one extra probe request per page on that first run.
@@ -188,11 +206,12 @@ function wp_is_application_passwords_supported() {
 
 Whatever site `WP_BASE_URL` points at must already have, independent of this workflow:
 
-- The `docs-publisher` role and an Application Password for it (see "Prerequisites" above — this
-  is the same one-time wp-admin setup, performed once per target site: production
+- `starter-kit-addon` active (it provides the `docs-publisher` role automatically) and a dedicated
+  user assigned that role, with an Application Password generated for it (see "Prerequisites"
+  above — the only manual, one-time wp-admin setup, performed once per target site: production
   `https://starter-kit.io` and development `https://develop.starter-kit.io`).
 - The `skt/v1/serialize-blocks` endpoint (`starter-kit-addon`) present and reachable.
-- The `doc-page` custom post type registered, REST base `/wp/v2/doc-page`.
+- The `doc-page` custom post type registered, REST base `/wp-json/skt/v1/doc-page`.
 
 ### If the target isn't reachable from a GitHub-hosted runner
 
@@ -223,7 +242,7 @@ truth regardless.
 Sync direction is **git → WordPress only**. A synced page can technically be opened and edited in
 Gutenberg (these are real native blocks, not a classic-HTML blob) — but the next sync run always
 overwrites `title`/`content`/`slug`/`menu_order` with what's generated from this repo (`parent`
-is never touched — see "Target: `/wp/v2/doc-page`" above). Any edit made directly in wp-admin is
+is never touched — see "Target: `/skt/v1/doc-page`" above). Any edit made directly in wp-admin is
 silently lost on the next run. If you need to change a doc page's content, edit the `.md` file in
 this repo, not the page in wp-admin.
 

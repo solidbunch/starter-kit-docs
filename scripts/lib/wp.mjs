@@ -1,18 +1,32 @@
 import { getMapEntry, setMapEntry } from './map.mjs';
 
 /**
+ * REST namespace the `doc-page` CPT is registered under (`starter-kit-addon`'s `DocPage`
+ * post type registration, `rest_namespace => SK_REST_API_NS`, `skt/v1`) — the theme's own
+ * already-whitelisted namespace, not core's `wp/v2`. See the module docblock below.
+ */
+const DOC_PAGE_NAMESPACE = 'skt/v1';
+
+/**
  * REST client + publishing logic (Tasks 3.2-3.4).
  *
- * Target: `/wp/v2/doc-page`, NOT `/wp/v2/pages`.
+ * Target: `/skt/v1/doc-page`, NOT `/wp/v2/pages` and no longer `/wp/v2/doc-page` either.
  *
- * `starter-kit.loc` already publishes these docs (17 of 18 at the time this was corrected) as a
- * custom post type, `doc-page` (registered by the `starter-kit-addon` plugin; REST base
- * `/wp/v2/doc-page`; rewrite slug `docs`; hierarchical; `has_archive: false`). Publishing to
- * `/wp/v2/pages` instead — the original Task 3.2 design — would create a second, colliding set
- * of posts at the same `/docs/<slug>/` URLs, since a Page's own parent/child slug resolution
- * would produce identical permalinks. That was caught before any live write happened; see
- * `.claude/plans/architect-plan-docs-sync-script-stage1.md`'s "Update 2026-08-10 (later same
+ * `starter-kit.loc` already publishes these docs as a custom post type, `doc-page` (registered
+ * by the `starter-kit-addon` plugin; rewrite slug `docs`; hierarchical; `has_archive: false`).
+ * Publishing to `/wp/v2/pages` instead — the original Task 3.2 design — would create a second,
+ * colliding set of posts at the same `/docs/<slug>/` URLs, since a Page's own parent/child slug
+ * resolution would produce identical permalinks. That was caught before any live write happened;
+ * see `.claude/plans/architect-plan-docs-sync-script-stage1.md`'s "Update 2026-08-10 (later same
  * day)" section for the full investigation.
+ *
+ * The namespace moved from `wp/v2` to `skt/v1` (`starter-kit-addon`'s `docs-publisher-role`
+ * plan) because the theme's REST API whitelist (`RestApiFilter.php`) only ever admits its own
+ * namespace, `skt/v1` — `/wp/v2/doc-page` can never be whitelisted itself. Registering `doc-page`
+ * under `skt/v1` instead means the CI publishing identity (`docs-publisher` role) no longer needs
+ * the core `edit_pages` capability (which would also grant it every other `wp/v2` route, including
+ * `/wp/v2/pages` and `/wp/v2/users`) just to pass the whitelist. See that plan for the full
+ * capability design.
  *
  * No synthetic "docs" parent page/post is resolved or created here. `doc-page`'s rewrite slug
  * (`docs`) is baked into the post type registration itself — confirmed via
@@ -68,8 +82,8 @@ export function createWpClient({ baseUrl, user, appPassword }) {
   /**
    * Namespace-agnostic request: `pathUnderWpJson` is everything after `/wp-json/`, so it can
    * target any REST namespace (`wp/v2/...`, `skt/v1/...`), not just the `doc-page` publishing
-   * routes. `request()` below is a thin `wp/v2/`-prefixing wrapper over this for the existing
-   * `doc-page` call sites, which keeps their behaviour and URLs identical.
+   * routes. `request()` below is a thin `DOC_PAGE_NAMESPACE`-prefixing wrapper over this for the
+   * existing `doc-page` call sites, which keeps their behaviour and URLs identical.
    */
   async function requestPath(pathUnderWpJson, { method = 'GET', body } = {}) {
     let res;
@@ -111,7 +125,7 @@ export function createWpClient({ baseUrl, user, appPassword }) {
   }
 
   async function request(pathAndQuery, opts) {
-    return requestPath(`wp/v2/${pathAndQuery}`, opts);
+    return requestPath(`${DOC_PAGE_NAMESPACE}/${pathAndQuery}`, opts);
   }
 
   return { request, requestPath };
