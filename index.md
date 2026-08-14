@@ -17,4 +17,5 @@
 15. [Sending Emails](sending-emails.md)
 16. [Advanced Installation Options](advanced-installation-options.md)
 17. [Platform Notes](platform-notes.md)
-18. [Troubleshooting](troubleshooting.md)  
+18. [Troubleshooting](troubleshooting.md)
+19. [Quick start after purchase](quick-start-after-purchase.md)  

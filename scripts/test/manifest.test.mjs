@@ -10,15 +10,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const indexMd = readFileSync(path.join(repoRoot, 'index.md'), 'utf8');
 
-test('parses all 18 index.md entries, in order, with matching slugs', () => {
+test('parses all 19 index.md entries, in order, with matching slugs', () => {
   const manifest = parseManifest(indexMd, { repoRoot });
-  assert.equal(manifest.length, 18);
+  assert.equal(manifest.length, 19);
   manifest.forEach((entry, i) => {
     assert.equal(entry.order, i + 1);
     assert.equal(entry.slug, entry.file.replace(/\.md$/, ''));
   });
   assert.equal(manifest[0].file, 'overview.md');
-  assert.equal(manifest[17].file, 'troubleshooting.md');
+  assert.equal(manifest[18].file, 'quick-start-after-purchase.md');
 });
 
 test('preserves raw "&" in titles without escaping', () => {
