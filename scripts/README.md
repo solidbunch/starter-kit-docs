@@ -85,6 +85,12 @@ never the other way round.
    The script reads exactly these three and nothing else. It fails fast with a clear message
    (no stack trace) if any is unset, and never logs the password.
 4. `cd scripts && npm install` (installs `markdown-it`; requires Node ≥ 20).
+5. Optional but recommended: `git config core.hooksPath .githooks` (once per checkout) enables a
+   pre-commit hook that blocks a commit if `index.md`'s TOC text has drifted from a file's own
+   `# heading` — offline, no WP credentials needed (`scripts/check-title-drift.mjs`, same check
+   `sync-docs.mjs` warns about at publish time, run early instead of first noticed in CI). Not
+   auto-installed by `git clone`: git only runs hooks from `.git/hooks` by default, which isn't
+   versioned, so `.githooks/` is opt-in per clone.
 
 ## Running
 

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Blocks a commit if index.md's TOC text has drifted from any linked file's own `# heading`
+# (the file's heading is the published WordPress title — see scripts/lib/manifest.mjs's
+# docblock). Offline, no WP credentials needed: scripts/check-title-drift.mjs only parses
+# Markdown locally.
+#
+# Not auto-installed by `git clone` — git only runs hooks from `.git/hooks` by default, which
+# isn't versioned. Enable once per checkout with:
+#   git config core.hooksPath .githooks
+
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root/scripts"
+
+if [ ! -d node_modules ]; then
+  echo "pre-commit: scripts/node_modules missing — run 'cd scripts && npm ci' once, then retry." >&2
+  exit 1
+fi
+
+node check-title-drift.mjs
