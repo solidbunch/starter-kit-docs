@@ -142,7 +142,7 @@ Five offline test files, no credentials, no network:
 - `test/wp.test.mjs` — `syncPage()`'s unchanged-check (including the `title.raw` comparison) and
   its non-empty-title guard, against a stubbed REST client.
 
-`npm test` should always report `pass 52, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 59, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
