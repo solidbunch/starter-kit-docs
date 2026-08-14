@@ -40,10 +40,21 @@ if this docs repo's Stage 2 (this file and `lib/wp.mjs`) ships before `starter-k
 addon deploy lands — self-healing, not destructive, since no write ever partially succeeds; it
 simply starts working again on the next run once both sides are deployed.
 
-Slugs always follow the manifest-derived value (from the file's title in `index.md`), not any
-previously-live slug — there is no indexing/SEO to preserve on this site, so no override
-mechanism exists for slug mismatches. `https-and-local-certificates.md`'s live post was
-renamed from its original `https-local-certificates` slug to match on 2026-08-11.
+Slugs always follow the manifest-derived value (from the filename itself — `file.slice(0, -3)`,
+in `lib/manifest.mjs`), not any previously-live slug and not any title — there is no indexing/SEO
+to preserve on this site, so no override mechanism exists for slug mismatches.
+`https-and-local-certificates.md`'s live post was renamed from its original
+`https-local-certificates` slug to match on 2026-08-11.
+
+`post_title` comes from each file's own first `# Heading` — the file, not `index.md`, is the
+single source of truth for a page's title (`lib/convert.mjs` captures it as plain text; see
+`lib/inline.mjs`'s `inlineToPlainText()`). `index.md`'s TOC link text is display-only
+(`lib/manifest.mjs`'s `tocTitle` field) and should mirror that heading by convention, so `index.md`
+stays legible as a table of contents on GitHub — it is never sent to WordPress. If a file's heading
+and its `index.md` TOC text drift apart, `sync-docs.mjs` prints a non-fatal
+`WARN index.md:<line> TOC text "..." does not match <file>'s own title heading "..."` warning (and
+aborts under `--strict`); fix it by editing `index.md`'s TOC entry to match the file's heading —
+never the other way round.
 
 ## Prerequisites
 
@@ -110,23 +121,28 @@ cd scripts && npm test
 # equivalent: node --test
 ```
 
-Four offline test files, no credentials, no network:
+Five offline test files, no credentials, no network:
 
-- `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 18 entries, in order, with
-  matching slugs), plus the link-target/file-existence error paths.
-- `test/inline.test.mjs` — inline HTML rendering, link rewriting, and entity escaping.
-- `test/convert.test.mjs` — token-stream → node-tree mapping, including the split-and-warn cases.
+- `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 19 entries, in order, with
+  matching slugs), the `tocTitle`/`line` fields, plus the link-target/file-existence error paths.
+- `test/inline.test.mjs` — inline HTML rendering, link rewriting, entity escaping, and
+  `inlineToPlainText()` (the title extractor — plain text, raw `&`, markup stripped, hard breaks
+  joined).
+- `test/convert.test.mjs` — token-stream → node-tree mapping, including the split-and-warn cases
+  and the captured `title`.
 - `test/blocks.test.mjs` — every block emitter (`paragraph`, `heading`, `listSection`/`listItem`,
   `code`, `quote`, `table`, `separator`, `embed`), asserted by node-shape deep-equality
   (`{blockName, attrs, innerBlocks, innerHTML}`), not markup-string matching.
+- `test/wp.test.mjs` — `syncPage()`'s unchanged-check (including the `title.raw` comparison) and
+  its non-empty-title guard, against a stubbed REST client.
 
-`npm test` should always report `pass 38, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 52, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
 a dedicated test: it serializes every file in `index.md` through the live
 `skt/v1/serialize-blocks` endpoint and diffs the result against that page's current live
-`content.raw`, for all 18 pages, every time it's run — see "Running" above.
+`content.raw`, for all 19 pages, every time it's run — see "Running" above.
 
 ## What `docs-sync-map.json` is, and why it's committed
 
@@ -245,10 +261,11 @@ truth regardless.
 
 Sync direction is **git → WordPress only**. A synced page can technically be opened and edited in
 Gutenberg (these are real native blocks, not a classic-HTML blob) — but the next sync run always
-overwrites `title`/`content`/`slug`/`menu_order` with what's generated from this repo (`parent`
+overwrites `title` (from the file's own first `# Heading`), `content`, `slug` (from the filename),
+and `menu_order` (from `index.md`'s position) with what's generated from this repo (`parent`
 is never touched — see "Target: `/skt/v1/doc-page`" above). Any edit made directly in wp-admin is
-silently lost on the next run. If you need to change a doc page's content, edit the `.md` file in
-this repo, not the page in wp-admin.
+silently lost on the next run. If you need to change a doc page's title or content, edit the `.md`
+file in this repo, not the page in wp-admin.
 
 ## Verifying a run (WP-CLI, not the browser)
 
@@ -269,7 +286,7 @@ docker exec starter-kit-php wp --path=/srv/web --allow-root post get <id> --fiel
 docker exec starter-kit-php wp --path=/srv/web --allow-root eval \
   'print_r(array_unique(array_column(parse_blocks(get_post(<id>)->post_content),"blockName")));'
 
-# 3. Idempotency: run the sync twice in a row; the second run should report 18x "unchanged" and
+# 3. Idempotency: run the sync twice in a row; the second run should report 19x "unchanged" and
 #    change no post_modified value:
 docker exec starter-kit-php wp --path=/srv/web --allow-root post list \
   --post_type=doc-page --fields=ID,post_modified

@@ -10,7 +10,11 @@ const LIST_ITEM_RE = /^(\d+)\.\s+\[(.+?)\]\(([^)]+)\)\s*$/;
 
 /**
  * Parses index.md's ordered Table of Contents list into the manifest contract:
- * [{ order, title, file, slug }], in document order.
+ * [{ order, tocTitle, file, slug, line }], in document order.
+ *
+ * `tocTitle` is `index.md`'s own TOC link text — display/drift-check only, never published as
+ * `post_title` (that now comes from each file's own `# heading`, see `convert.mjs`). `index.md`
+ * itself remains the source of truth for page `order` and `file` → `slug` mapping only.
  *
  * Rules (per architect-plan-docs-sync-script-stage1.md, Task 2.1):
  * - Ignores the "## Table of Contents" heading itself.
@@ -24,7 +28,7 @@ const LIST_ITEM_RE = /^(\d+)\.\s+\[(.+?)\]\(([^)]+)\)\s*$/;
  * @param {string} [options.repoRoot] Repo root to resolve/verify `*.md` files against.
  * @param {boolean} [options.checkFilesExist=true] Set false to skip the disk-existence check
  *   (useful for unit tests that don't want a real repo checkout).
- * @returns {{order: number, title: string, file: string, slug: string}[]}
+ * @returns {{order: number, tocTitle: string, file: string, slug: string, line: number}[]}
  */
 export function parseManifest(indexMdSource, options = {}) {
   const { repoRoot = DEFAULT_REPO_ROOT, checkFilesExist = true } = options;
@@ -74,7 +78,7 @@ export function parseManifest(indexMdSource, options = {}) {
       );
     }
 
-    entries.push({ order, title, file, slug });
+    entries.push({ order, tocTitle: title, file, slug, line: i + 1 });
   }
 
   return entries;

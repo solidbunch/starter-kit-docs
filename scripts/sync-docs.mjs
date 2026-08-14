@@ -59,6 +59,30 @@ function parseArgs(argv) {
   return args;
 }
 
+/**
+ * Prints the dry-run title diff for one page (Decision 6). Never reads `title.rendered` for the
+ * "live" side — that value has gone through `get_the_title()` (wptexturize et al.), which would
+ * produce false diffs on curly quotes and HTML entities that `title.raw` does not have.
+ *
+ * @param {object|undefined} mapEntry This file's `docs-sync-map.json` entry, or undefined if new.
+ * @param {object|null} live The live `doc-page` response (`?context=edit`), or null if not fetched.
+ * @param {string} generatedTitle `convertFile()`'s returned title.
+ * @returns {string}
+ */
+function titleDiff(mapEntry, live, generatedTitle) {
+  if (!mapEntry) {
+    return `  title: "${generatedTitle}" (new page)\n`;
+  }
+  const liveTitle = live?.title?.raw;
+  if (liveTitle === undefined) {
+    return `  title: "${generatedTitle}" (live title unavailable)\n`;
+  }
+  if (liveTitle === generatedTitle) {
+    return `  title: "${generatedTitle}" (no change)\n`;
+  }
+  return `  title: "${liveTitle}" → "${generatedTitle}"\n`;
+}
+
 function unifiedDiff(before, after, label) {
   // Minimal line-based diff — good enough for a human review of generated markup; not meant
   // to be a general-purpose diff algorithm.
@@ -98,11 +122,21 @@ async function main() {
   const allWarnings = [];
   for (const entry of manifest) {
     const source = readFileSync(path.join(repoRoot, entry.file), 'utf8');
-    const { blocks, warnings } = convertFile({ file: entry.file, source, manifest });
-    converted.push({ ...entry, blocks });
+    const { title, blocks, warnings } = convertFile({ file: entry.file, source, manifest });
+    converted.push({ ...entry, title, blocks });
     for (const w of warnings) {
       console.warn(`WARN ${w}`);
       allWarnings.push(w);
+    }
+
+    // Decision 4: the file's own title heading is what gets published — if index.md's TOC link
+    // text has drifted from it, warn (non-fatal) so index.md doesn't silently rot.
+    if (title !== entry.tocTitle) {
+      const driftWarning =
+        `index.md:${entry.line} TOC text "${entry.tocTitle}" does not match ${entry.file}'s own ` +
+        `title heading "${title}" — the file's heading is the published title; update index.md`;
+      console.warn(`WARN ${driftWarning}`);
+      allWarnings.push(driftWarning);
     }
   }
 
@@ -145,11 +179,12 @@ async function main() {
       writeFileSync(path.join(outDir, `${entry.slug}.html`), entry.html);
 
       let liveContent = '';
+      let live = null;
       let fetchError = null;
       const mapEntry = map.pages[entry.file];
       if (mapEntry) {
         try {
-          const live = await client.request(`doc-page/${mapEntry.id}?context=edit`);
+          live = await client.request(`doc-page/${mapEntry.id}?context=edit`);
           liveContent = live?.content?.raw ?? '';
         } catch (err) {
           fetchError = err.message;
@@ -163,6 +198,7 @@ async function main() {
       }
 
       console.log(`--- ${entry.slug} ---`);
+      process.stdout.write(titleDiff(mapEntry, live, entry.title));
       process.stdout.write(unifiedDiff(liveContent, entry.html, `${entry.slug}.html`));
     }
     console.log(

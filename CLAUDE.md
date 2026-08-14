@@ -6,9 +6,13 @@ copy-pasted into WordPress pages at `starter-kit.loc/docs/`.
 
 ## Structure
 
-- [index.md](index.md) — table of contents; **also the manifest** for page order/titles when
-  generating anything from this repo (site nav, sync scripts, etc.) — don't duplicate that
-  ordering via front-matter in individual files.
+- [index.md](index.md) — table of contents; **also the manifest** for page **order** and
+  **file → slug** mapping when generating anything from this repo (site nav, sync scripts, etc.)
+  — don't duplicate that ordering via front-matter in individual files. Each file's own first
+  `# Heading` is the single source of truth for that page's **title**; `index.md`'s TOC link text
+  should mirror that heading by convention, so `index.md` stays legible as a table of contents on
+  GitHub — the sync script warns when it drifts, but always publishes the heading from the file,
+  never the TOC text.
 - All other `*.md` files at root — one file per doc page, referenced from `index.md`.
 - `_config.yml` — Jekyll config (theme: minima, kramdown), for optional GitHub Pages rendering.
 - `scripts/` — the one deliberate exception to "flat repo, no code": the Markdown → WordPress

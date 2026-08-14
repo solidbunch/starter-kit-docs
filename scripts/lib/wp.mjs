@@ -148,10 +148,17 @@ export async function findPageBySlug(client, { slug }) {
 
 /**
  * Publishes (creates or updates) one `doc-page` post per the manifest entry, or reports
- * `unchanged` if the generated markup already matches the live `content.raw`. Only `title`,
- * `content`, `slug`, `menu_order`, and `status: "publish"` are ever sent — no `parent` (see this
- * module's header note) and nothing else (source plan's out-of-scope list — no meta, no SEO
- * fields).
+ * `unchanged` if the generated markup, title, status and slug all already match the live post.
+ * Only `title`, `content`, `slug`, `menu_order`, and `status: "publish"` are ever sent — no
+ * `parent` (see this module's header note) and nothing else (source plan's out-of-scope list —
+ * no meta, no SEO fields).
+ *
+ * `title` now comes from `convertFile()`'s captured `# heading` text (the file's own title), not
+ * from the manifest — see `convert.mjs` and `manifest.mjs`'s `tocTitle` field. A missing/empty
+ * `title` is treated as a caller bug and reported as `failed`, never silently published: a stale
+ * read of `manifestEntry.tocTitle` (renamed away, per Decision 3) would otherwise send no `title`
+ * key at all (`JSON.stringify` drops `undefined`), and WordPress would leave the old title
+ * untouched with no error anywhere.
  *
  * @param {{request: Function}} client
  * @param {object} map
@@ -160,6 +167,10 @@ export async function findPageBySlug(client, { slug }) {
  */
 export async function syncPage(client, map, entry) {
   const { file, slug: manifestSlug, title, order, html } = entry;
+
+  if (typeof title !== 'string' || title === '') {
+    return { file, slug: manifestSlug, id: getMapEntry(map, file)?.id ?? null, action: 'failed', error: `wp: ${file}: missing or empty title` };
+  }
 
   try {
     let mapEntry = getMapEntry(map, file);
@@ -173,8 +184,10 @@ export async function syncPage(client, map, entry) {
     }
 
     // Use the map's own slug when one is already known, so a page's slug only ever changes when
-    // the manifest-derived value actually changes (e.g. a title edit) — not spuriously on every
-    // run. Only a brand-new page (no map entry yet) uses the manifest-derived slug directly.
+    // the manifest-derived value actually changes — not spuriously on every run. Slugs derive
+    // from the filename only (`file.slice(0, -3)`, see manifest.mjs), never from a title, so a
+    // title edit alone never changes a slug. Only a brand-new page (no map entry yet) uses the
+    // manifest-derived slug directly.
     const slug = mapEntry ? mapEntry.slug : manifestSlug;
 
     const payload = {
@@ -193,7 +206,17 @@ export async function syncPage(client, map, entry) {
 
     const live = await client.request(`doc-page/${mapEntry.id}?context=edit`);
     const liveContent = live?.content?.raw ?? '';
-    if (liveContent === html && live?.status === 'publish' && live?.slug === slug && live?.menu_order === order) {
+    // `title.raw` is only present when the request uses `?context=edit` (as above); treat it as
+    // absent — i.e. "differs" — never as "matches", so a missing field never masquerades as an
+    // unchanged title (Decision 5/R2: without this comparison, every page whose body markup is
+    // unchanged would report `unchanged` and its corrected title would never actually publish).
+    if (
+      liveContent === html &&
+      live?.status === 'publish' &&
+      live?.slug === slug &&
+      live?.menu_order === order &&
+      live?.title?.raw === title
+    ) {
       return { file, slug, id: mapEntry.id, action: 'unchanged', error: null };
     }
 

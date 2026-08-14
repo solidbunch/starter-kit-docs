@@ -138,3 +138,37 @@ export function createMarkdownIt(manifest) {
 export function renderInline(md, inlineToken, env = {}) {
   return md.renderer.renderInline(inlineToken.children, md.options, env);
 }
+
+/**
+ * Extracts the plain-text content of one inline-container token's children — deliberately
+ * *not* `renderInline()`. `renderInline()` runs the children through this module's overridden
+ * `text` rule, which escapes `&`, `<`, `>` for safe placement inside an HTML text node. That is
+ * correct for body markup, but wrong for a value headed straight into `post_title`:
+ * `https-and-local-certificates.md`'s title heading, `# HTTPS & Local Certificates`, would come
+ * out of `renderInline()` as `HTTPS &amp; Local Certificates`, and WordPress core stores
+ * `post_title` verbatim (`title.raw` returns the raw column, no un-escaping) — so the published
+ * title would end up with a literal `&amp;` in it, a regression against today's manifest-sourced
+ * title, which passes the raw `&` through unescaped.
+ *
+ * Instead, this concatenates each child token's own `.content`: markup tokens (`strong_open`,
+ * `em_close`, `link_open`, `code_inline`'s wrapper, …) carry `content === ''` in markdown-it, so a
+ * plain concatenation naturally strips inline formatting and keeps only the human-readable words
+ * (`code_inline` itself carries the code's literal text in `.content`, so `` `code` `` degrades to
+ * its bare text rather than vanishing). `softbreak`/`hardbreak` also carry `content === ''`, so
+ * they are special-cased to a single space, keeping a multi-line heading's words apart. No HTML
+ * escaping is applied at any point — the caller is responsible for a plain string, not markup.
+ *
+ * @param {import('markdown-it/lib/token.mjs').default} inlineToken A token with `.type === 'inline'`.
+ * @returns {string}
+ */
+export function inlineToPlainText(inlineToken) {
+  const parts = [];
+  for (const child of inlineToken.children) {
+    if (child.type === 'softbreak' || child.type === 'hardbreak') {
+      parts.push(' ');
+    } else {
+      parts.push(child.content);
+    }
+  }
+  return parts.join('').replace(/\s+/g, ' ').trim();
+}

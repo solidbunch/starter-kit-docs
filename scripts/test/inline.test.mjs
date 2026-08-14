@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createMarkdownIt, renderInline, rewriteLink, buildManifestIndex } from '../lib/inline.mjs';
+import {
+  createMarkdownIt,
+  renderInline,
+  rewriteLink,
+  buildManifestIndex,
+  inlineToPlainText,
+} from '../lib/inline.mjs';
 
 const manifest = [
   { file: 'overview.md', slug: 'overview' },
@@ -89,6 +95,35 @@ test('hard break matches the live shape from overview.md ("...built for rapid pr
     '**StarterKit** is a baseline WordPress environment template built for rapid project initiation.  \nIt provides a **preconfigured Docker-based infrastructure**.';
   const html = renderLine(md, line, { file: 'overview.md' });
   assert.match(html, /built for rapid project initiation\.<br>It provides a/);
+});
+
+function inlineOf(md, line, env = {}) {
+  const tokens = md.parse(line, env);
+  return tokens.find((t) => t.type === 'inline');
+}
+
+test('inlineToPlainText() extracts plain text from a plain heading', () => {
+  const md = createMarkdownIt(manifest);
+  const inline = inlineOf(md, 'HTTPS & Local Certificates');
+  assert.equal(inlineToPlainText(inline), 'HTTPS & Local Certificates');
+});
+
+test('inlineToPlainText() preserves raw "&" — never escapes to &amp;', () => {
+  const md = createMarkdownIt(manifest);
+  const inline = inlineOf(md, 'Open-source & extensible');
+  assert.equal(inlineToPlainText(inline), 'Open-source & extensible');
+});
+
+test('inlineToPlainText() strips **bold** and `code` markup down to their plain text', () => {
+  const md = createMarkdownIt(manifest);
+  const inline = inlineOf(md, 'Some **bold** and `code` title');
+  assert.equal(inlineToPlainText(inline), 'Some bold and code title');
+});
+
+test('inlineToPlainText() joins a hard-break heading with a single space', () => {
+  const md = createMarkdownIt(manifest);
+  const inline = inlineOf(md, 'First line.  \nSecond line.');
+  assert.equal(inlineToPlainText(inline), 'First line. Second line.');
 });
 
 test('composer-usage.md:154 — a literal `"` in plain text renders as `"`, not `&quot;`, matching the live fixture', () => {

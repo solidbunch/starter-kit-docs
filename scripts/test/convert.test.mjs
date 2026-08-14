@@ -56,6 +56,33 @@ test('convertFile skips the document\'s title heading (level 1) and still conver
   assert.deepEqual(mainGoals.attrs, {});
 });
 
+test('convertFile captures the title heading\'s plain text (troubleshooting.md, emoji preserved)', () => {
+  const file = 'troubleshooting.md';
+  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+  const { title } = convertFile({ file, source, manifest });
+  assert.equal(title, 'Troubleshooting 🐞');
+});
+
+test('convertFile captures the title heading\'s plain text from a level-2 opener (advanced-installation-options.md)', () => {
+  const file = 'advanced-installation-options.md';
+  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+  const { title } = convertFile({ file, source, manifest });
+  assert.equal(title, 'Advanced Installation Options');
+});
+
+test('convertFile captures the title heading\'s plain text with raw "&", not an HTML entity (https-and-local-certificates.md)', () => {
+  const file = 'https-and-local-certificates.md';
+  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+  const { title } = convertFile({ file, source, manifest });
+  assert.equal(title, 'HTTPS & Local Certificates');
+});
+
+test('convertFile throws when the source has no heading token to use as a title', () => {
+  const file = 'overview.md';
+  const source = 'Just a paragraph, no heading at all.\n';
+  assert.throws(() => convertFile({ file, source, manifest }), /overview\.md/);
+});
+
 test('convertFile converts overview.md\'s "<!-- embed: URL -->" marker into the row/column/embed block, matching B.embed()', () => {
   const file = 'overview.md';
   const source = readFileSync(path.join(repoRoot, file), 'utf8');

@@ -21,16 +21,22 @@ test('parses all 19 index.md entries, in order, with matching slugs', () => {
   assert.equal(manifest[18].file, 'quick-start-after-purchase.md');
 });
 
-test('preserves raw "&" in titles without escaping', () => {
+test('preserves raw "&" in TOC titles without escaping', () => {
   const manifest = parseManifest(indexMd, { repoRoot });
-  const entry = manifest.find((m) => m.file === 'environment-and-secrets.md');
-  assert.equal(entry.title, 'Environment & Secrets');
+  const entry = manifest.find((m) => m.file === 'https-and-local-certificates.md');
+  assert.equal(entry.tocTitle, 'HTTPS & Local Certificates');
+});
+
+test('records the 1-based index.md line number for each entry', () => {
+  const manifest = parseManifest(indexMd, { repoRoot });
+  const entry = manifest.find((m) => m.file === 'troubleshooting.md');
+  assert.equal(entry.line, 20);
 });
 
 test('throws naming the offending line for a bogus link to a missing .md file', () => {
   const bogus = indexMd.replace(
-    '18. [Troubleshooting](troubleshooting.md)',
-    '18. [Troubleshooting](troubleshooting.md)\n19. [Bogus](nope.md)'
+    '18. [Troubleshooting 🐞](troubleshooting.md)',
+    '18. [Troubleshooting 🐞](troubleshooting.md)\n19. [Bogus](nope.md)'
   );
   assert.throws(
     () => parseManifest(bogus, { repoRoot }),
@@ -40,8 +46,8 @@ test('throws naming the offending line for a bogus link to a missing .md file', 
 
 test('throws naming the offending line for a href that is not a bare *.md filename', () => {
   const bogus = indexMd.replace(
-    '18. [Troubleshooting](troubleshooting.md)',
-    '18. [Troubleshooting](troubleshooting.md)\n19. [Bogus](https://example.com/nope.md)'
+    '18. [Troubleshooting 🐞](troubleshooting.md)',
+    '18. [Troubleshooting 🐞](troubleshooting.md)\n19. [Bogus](https://example.com/nope.md)'
   );
   assert.throws(
     () => parseManifest(bogus, { repoRoot }),

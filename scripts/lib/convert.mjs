@@ -1,4 +1,4 @@
-import { createMarkdownIt, renderInline } from './inline.mjs';
+import { createMarkdownIt, renderInline, inlineToPlainText } from './inline.mjs';
 import * as B from './blocks.mjs';
 
 /**
@@ -13,7 +13,7 @@ import * as B from './blocks.mjs';
  *   messages naming the source location.
  * @param {string} args.source Raw Markdown source of `file`.
  * @param {{file: string, slug: string}[]} args.manifest Full manifest, for link rewriting.
- * @returns {{slug: string, blocks: object[], warnings: string[]}}
+ * @returns {{slug: string, title: string, blocks: object[], warnings: string[]}}
  */
 export function convertFile({ file, source, manifest }) {
   const entry = manifest.find((m) => m.file === file);
@@ -34,8 +34,10 @@ export function convertFile({ file, source, manifest }) {
   // title at the top of every generated page's body. This is positional (first heading token
   // encountered), not level-based — `advanced-installation-options.md` and
   // `project-architecture-and-structure.md` both open with `##` (level 2) rather than `#`, so
-  // "skip level-1 headings" would miss those two files' title headings.
+  // "skip level-1 headings" would miss those two files' title headings. We now also capture its
+  // plain text here, in the same branch, to return as `post_title` (Decision 2).
   let titleHeadingSkipped = false;
+  let title;
 
   let i = 0;
   while (i < tokens.length) {
@@ -45,6 +47,7 @@ export function convertFile({ file, source, manifest }) {
       case 'heading_open': {
         if (!titleHeadingSkipped) {
           titleHeadingSkipped = true;
+          title = inlineToPlainText(tokens[i + 1]);
           i += 3; // heading_open, inline, heading_close — matches post_title, not content
           break;
         }
@@ -112,7 +115,11 @@ export function convertFile({ file, source, manifest }) {
     }
   }
 
-  return { slug: entry.slug, blocks, warnings };
+  if (title === undefined || title === '') {
+    throw new Error(`convert: ${file}: no heading token found to use as the title (post_title)`);
+  }
+
+  return { slug: entry.slug, title, blocks, warnings };
 }
 
 function unsupportedToken(t, file) {
