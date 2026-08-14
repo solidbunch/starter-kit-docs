@@ -108,20 +108,52 @@ export function heading(level, contentHtml) {
  * is an array of already-built `core/list-item`/`core/list` node objects — passed through as
  * `innerBlocks`, unjoined; the sibling glue between them is server-owned.
  *
+ * `start` continues an ordered list's numbering across a fence-caused split (see
+ * `.claude/plans/architect-plan-list-numbering-start-attribute.md`). It is only meaningful for
+ * `"ol"` — passing it with `"ul"` throws, same as a caller bug rather than something to drop
+ * silently. `start: 1` is accepted but omitted, same as `start: undefined`: unlike `level`/
+ * `ordered`/`language` elsewhere in this module, `core/list`'s `start` has NO `default` in
+ * `block.json` (`start: { type: 'number' }`, no `default` key — starter-kit-foundation.loc's
+ * wp-core `block.json`), so nothing on the PHP serialization path suppresses it for us; the
+ * caller must omit it itself when it would be the implicit sequence start (1), exactly as it
+ * already omits `level: 2`. When emitted, `attrs` is `{ ordered: true, start }` in that order —
+ * matching `block.json`'s own `ordered`-before-`start` property order, which is also the order
+ * the editor's `getCommentAttributes()` would produce, so the block comment stays idempotent.
+ * `save()` (`wp-includes/js/dist/block-library.js`) spreads `{ type, reversed, start }` into
+ * `useBlockProps.save()` before the generated `className` prop is appended by the
+ * `blocks.getSaveContent.extraProps` filter, so React renders `start` before `class` on the
+ * tag — `<ol start="3" class="wp-block-list">`, not the reverse.
+ *
  * @param {'ul'|'ol'} listType
  * @param {object[]} childNodes
+ * @param {number} [start] - 1-based numbering start for `"ol"`; integer >= 1; omit or pass 1 for
+ *   the implicit start; throws if combined with `"ul"`.
  * @returns {{blockName: string, attrs: object, innerBlocks: object[], innerHTML: string}}
  */
-export function listSection(listType, childNodes) {
+export function listSection(listType, childNodes, start) {
   if (listType !== 'ul' && listType !== 'ol') {
     throw new Error(`blocks.listSection: listType must be "ul" or "ol", got ${JSON.stringify(listType)}`);
   }
+  if (start !== undefined) {
+    if (!Number.isInteger(start) || start < 1) {
+      throw new Error(`blocks.listSection: start must be an integer >= 1, got ${JSON.stringify(start)}`);
+    }
+    if (listType === 'ul') {
+      throw new Error('blocks.listSection: start is not valid with listType "ul"');
+    }
+  }
   const tag = listType;
+  const emitStart = listType === 'ol' && start !== undefined && start !== 1;
+  const attrs = listType === 'ol' ? { ordered: true } : {};
+  if (emitStart) {
+    attrs.start = start;
+  }
+  const startAttr = emitStart ? ` start="${start}"` : '';
   return {
     blockName: 'core/list',
-    attrs: listType === 'ol' ? { ordered: true } : {},
+    attrs,
     innerBlocks: childNodes,
-    innerHTML: `\n<${tag} class="wp-block-list"></${tag}>\n`,
+    innerHTML: `\n<${tag}${startAttr} class="wp-block-list"></${tag}>\n`,
   };
 }
 

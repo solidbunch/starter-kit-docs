@@ -111,6 +111,48 @@ test('listItem() returns a core/list-item node, bare <li>, no class', () => {
   });
 });
 
+// --- listSection(): start attribute (fence-caused split numbering continuation) ------------
+
+test('listSection() ol with start:4 emits ordered+start in attrs (key order) and start before class in innerHTML', () => {
+  const items = [listItem('Step four'), listItem('Step five')];
+  const node = listSection('ol', items, 4);
+  assert.deepEqual(node, {
+    blockName: 'core/list',
+    attrs: { ordered: true, start: 4 },
+    innerBlocks: items,
+    innerHTML: '\n<ol start="4" class="wp-block-list"></ol>\n',
+  });
+  assert.equal(JSON.stringify(node.attrs), '{"ordered":true,"start":4}');
+});
+
+test('listSection() ol with start:1 is byte-identical to omitting start (implicit sequence start)', () => {
+  const items = [listItem('Step one')];
+  const withExplicitOne = listSection('ol', items, 1);
+  const withoutStart = listSection('ol', items);
+  const expected = {
+    blockName: 'core/list',
+    attrs: { ordered: true },
+    innerBlocks: items,
+    innerHTML: '\n<ol class="wp-block-list"></ol>\n',
+  };
+  assert.deepEqual(withExplicitOne, expected);
+  assert.deepEqual(withoutStart, expected);
+  assert.ok(!Object.prototype.hasOwnProperty.call(withExplicitOne.attrs, 'start'));
+  assert.ok(!Object.prototype.hasOwnProperty.call(withoutStart.attrs, 'start'));
+});
+
+test('listSection() throws when start is combined with listType "ul"', () => {
+  const items = [listItem('Item')];
+  assert.throws(() => listSection('ul', items, 3));
+});
+
+test('listSection() throws for non-positive-integer start values', () => {
+  const items = [listItem('Item')];
+  assert.throws(() => listSection('ol', items, 0));
+  assert.throws(() => listSection('ol', items, 2.5));
+  assert.throws(() => listSection('ol', items, '3'));
+});
+
 // --- code(): starter-kit/code, with and without a language ---------------------------------
 
 test('code() with language=bash emits the language attribute and a language-bash class', () => {
