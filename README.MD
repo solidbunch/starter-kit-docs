@@ -62,6 +62,11 @@ To make the automatic pipeline work, in the GitHub repo set:
      `edit_pages`/`edit_published_pages`/`publish_pages`/`edit_others_pages` or any other core Page
      capability, so it cannot touch core WP Pages, and explicitly not `unfiltered_html` or
      `manage_options`); the only manual step is assigning that role to a dedicated user
+   - the role is created by the addon's **activation hook**, which does not fire when the plugin
+     is deployed by copying files onto a site where it is already active — after such a deploy,
+     reactivate it once on that site with
+     `wp plugin deactivate starter-kit-addon && wp plugin activate starter-kit-addon`
+     (`wp plugin activate` alone is a no-op on an already-active plugin)
    - the `skt/v1/serialize-blocks` REST endpoint present (`starter-kit-addon`) and the `doc-page`
      custom post type registered under the `skt/v1` REST namespace
 

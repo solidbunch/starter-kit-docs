@@ -48,8 +48,12 @@ renamed from its original `https-local-certificates` slug to match on 2026-08-11
 ## Prerequisites
 
 1. The `docs-publisher` role is provided automatically by `starter-kit-addon` — it creates the
-   role on plugin activation and re-converges it on every plugin version change, so it needs no
-   manual setup on any target site. It holds `read` plus the ten doc-page-scoped primitives
+   role from the plugin's **activation hook**, so it needs no manual role setup on any target
+   site. Note that deploying the plugin by copying files onto a site where it is already active
+   does not fire that hook (`wp plugin activate` on an already-active plugin is a no-op); after
+   such a deploy, and after any future change to the capability set, reactivate it once on that
+   site: `wp plugin deactivate starter-kit-addon && wp plugin activate starter-kit-addon`.
+   It holds `read` plus the ten doc-page-scoped primitives
    (`edit_doc_pages`, `edit_others_doc_pages`, `edit_published_doc_pages`,
    `edit_private_doc_pages`, `publish_doc_pages`, `read_private_doc_pages`, `delete_doc_pages`,
    `delete_others_doc_pages`, `delete_published_doc_pages`, `delete_private_doc_pages`) —
