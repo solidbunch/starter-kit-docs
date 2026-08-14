@@ -180,16 +180,80 @@ test('convertFile splits an ordered list around a nested fenced code block into 
     startIndex + 2,
     startIndex + 7
   );
-  assert.equal(firstList.attrs.ordered, true);
   assert.equal(firstCode.attrs.language, 'bash');
   assert.match(firstCode.innerHTML, /git clone https:\/\/github\.com\/solidbunch\/starter-kit-foundation\.git my-project/);
-  assert.equal(secondList.attrs.ordered, true);
   assert.equal(secondCode.attrs.language, 'bash');
   assert.match(secondCode.innerHTML, /<code class="language-bash">claude<\/code>/);
-  assert.equal(thirdList.attrs.ordered, true);
+
+  // Each section's `start` continues the logical numbering across the two splits: the first
+  // section (1 item, "Clone the template") omits `start` (implicit 1); the second (1 item,
+  // "Start Claude Code") carries `start: 2`; the third (6 items, the remaining steps) carries
+  // `start: 3`.
+  assert.deepEqual(firstList.attrs, { ordered: true });
+  assert.equal(firstList.innerHTML, '\n<ol class="wp-block-list"></ol>\n');
+  assert.deepEqual(secondList.attrs, { ordered: true, start: 2 });
+  assert.equal(secondList.innerHTML, '\n<ol start="2" class="wp-block-list"></ol>\n');
+  assert.deepEqual(thirdList.attrs, { ordered: true, start: 3 });
+  assert.equal(thirdList.innerHTML, '\n<ol start="3" class="wp-block-list"></ol>\n');
 
   assert.deepEqual(warnings, [
-    'ai-assisted-development.md:75 ordered list split by nested code block; numbering restarts',
-    'ai-assisted-development.md:82 ordered list split by nested code block; numbering restarts',
+    'ai-assisted-development.md:75 ordered list split by nested code block',
+    'ai-assisted-development.md:82 ordered list split by nested code block',
   ]);
+});
+
+test('convertFile computes `start` as a running tally, not a per-section constant (synthetic source, 3 items before the fence)', () => {
+  const file = 'overview.md'; // any manifest file name works — convertFile only uses it for lookup/messages
+  const source = [
+    '# Title',
+    '',
+    '1. First',
+    '2. Second',
+    '3. Third:',
+    '',
+    '   ```bash',
+    '   echo hi',
+    '   ```',
+    '',
+    '4. Fourth',
+    '5. Fifth',
+    '',
+  ].join('\n');
+  const { blocks, warnings } = convertFile({ file, source, manifest });
+
+  const lists = blocks.filter((b) => b.blockName === 'core/list');
+  assert.equal(lists.length, 2);
+  assert.deepEqual(lists[0].attrs, { ordered: true });
+  assert.equal(lists[0].innerHTML, '\n<ol class="wp-block-list"></ol>\n');
+  assert.deepEqual(lists[1].attrs, { ordered: true, start: 4 });
+  assert.equal(lists[1].innerHTML, '\n<ol start="4" class="wp-block-list"></ol>\n');
+
+  assert.deepEqual(warnings, [`${file}:7 ordered list split by nested code block`]);
+});
+
+test('convertFile\'s split unordered list (https-and-local-certificates.md) stays attrs {} with no start anywhere, warning reworded', () => {
+  const file = 'https-and-local-certificates.md';
+  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+  const { blocks, warnings } = convertFile({ file, source, manifest });
+
+  const lists = blocks.filter((b) => b.blockName === 'core/list');
+  assert.ok(lists.length > 0, 'expected at least one core/list node');
+  for (const list of lists) {
+    assert.deepEqual(list.attrs, {});
+    assert.doesNotMatch(list.innerHTML, /start=/);
+  }
+
+  assert.deepEqual(warnings, ['https-and-local-certificates.md:33 unordered list split by nested code block']);
+});
+
+test('convertFile\'s never-split ordered list (automatic-backups.md) carries attrs {ordered:true} with no start key', () => {
+  const file = 'automatic-backups.md';
+  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+  const { blocks, warnings } = convertFile({ file, source, manifest });
+
+  const lists = blocks.filter((b) => b.blockName === 'core/list');
+  assert.equal(lists.length, 1);
+  assert.deepEqual(lists[0].attrs, { ordered: true });
+  assert.equal(lists[0].innerHTML, '\n<ol class="wp-block-list"></ol>\n');
+  assert.deepEqual(warnings, []);
 });

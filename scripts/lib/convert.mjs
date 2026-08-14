@@ -165,6 +165,11 @@ function fenceToCode(t, md) {
  * page root, since `starter-kit/list-item` cannot hold arbitrary block children. This doc set's
  * three known split points (Decision 4) are all at the top level, where "immediate parent" and
  * "page root" are the same thing, so this distinction has no observable effect today.
+ *
+ * For an `ordered_list_open`, a split no longer restarts the visible numbering: each reopened
+ * section after the first carries `core/list`'s native `start` attribute, computed from the
+ * count of `core/list-item`s already committed to earlier sibling sections in this same list.
+ * Unordered lists have no numbering concept and pass no `start`.
  */
 function walkList(tokens, startIndex, md, env, file) {
   const listToken = tokens[startIndex];
@@ -176,10 +181,21 @@ function walkList(tokens, startIndex, md, env, file) {
   const siblings = [];
   const warnings = [];
 
+  // Two separate counters, per the Counting rule: `currentItems.length` cannot be used here
+  // because `currentItems` also holds nested `core/list` sibling nodes pushed by the nested-list
+  // branch below, which are not `<li>` items. `pendingItemCount` is incremented only by
+  // `flushItemText()`, once per item it actually pushes; `committedItemCount` accumulates the
+  // `<li>`s already flushed into earlier sibling sections of this same list.
+  let pendingItemCount = 0;
+  let committedItemCount = 0;
+
   const flushSection = () => {
     if (currentItems.length > 0) {
-      siblings.push(B.listSection(listType, currentItems));
+      const start = listType === 'ol' && committedItemCount > 0 ? committedItemCount + 1 : undefined;
+      siblings.push(B.listSection(listType, currentItems, start));
       currentItems = [];
+      committedItemCount += pendingItemCount;
+      pendingItemCount = 0;
     }
   };
 
@@ -195,6 +211,7 @@ function walkList(tokens, startIndex, md, env, file) {
       if (itemHtmlParts.length) {
         currentItems.push(B.listItem(itemHtmlParts.join('')));
         itemHtmlParts = [];
+        pendingItemCount += 1;
       }
     };
 
@@ -216,8 +233,7 @@ function walkList(tokens, startIndex, md, env, file) {
         siblings.push(B.code(...fenceToCode(t, md)));
         const line = t.map ? t.map[0] + 1 : '?';
         const kind = listType === 'ol' ? 'ordered' : 'unordered';
-        const detail = listType === 'ol' ? '; numbering restarts' : '';
-        warnings.push(`${file}:${line} ${kind} list split by nested code block${detail}`);
+        warnings.push(`${file}:${line} ${kind} list split by nested code block`);
         i += 1;
       } else {
         throw unsupportedToken(t, file);
