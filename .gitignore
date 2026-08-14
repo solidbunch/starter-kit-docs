@@ -79,3 +79,4 @@ scripts/node_modules/
 !.claude/output-styles/
 !.claude/workflows/
 !.claude/settings.json
+.playwright-mcp/
