@@ -7,7 +7,7 @@
 5. [Makefile Reference](makefile-reference.md)
 6. [Composer usage](composer-usage.md)
 7. [Docker Images](docker-images.md)
-8. [Environment Configuration and Secret Management](environment-and-secrets.md)
+8. [Environment and Secrets](environment-and-secrets.md)
 9. [HTTPS & Local Certificates](https-and-local-certificates.md)
 10. [Project Architecture and Structure](project-architecture-and-structure.md)
 11. [Infrastructure](infrastructure.md)

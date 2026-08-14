@@ -80,18 +80,19 @@ jobs:
         working-directory: scripts
         run: npm ci
 
-      # Informational, not a gate: sync-docs.mjs exits non-zero from --dry-run only when a live
-      # fetch fails, never because the diff is non-empty — a non-empty diff is the normal case
-      # for a docs change. Always runs (even after a failed step earlier) so the run's byte-level
-      # diff is recorded in the log/summary regardless of outcome. --strict is never passed here
-      # (the doc set has three known, intentional converter warnings that would fail every run).
+      # Only runs for an explicit dry-run request (workflow_dispatch with dry_run: true) — on a
+      # normal push-triggered or non-dry-run manual run, "Publish (live sync)" below already does
+      # its own live fetch+compare per page and reports created/updated/unchanged/failed, so a
+      # separate full byte-diff beforehand is redundant work that only adds noise to the summary.
+      # --strict is never passed here (the doc set has three known, intentional converter warnings
+      # that would fail every run).
       - name: Dry run (diff against live content)
-        if: always()
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
         working-directory: scripts
         run: npm run sync:dry 2>&1 | tee dry-run-output.log
 
       - name: Append dry-run summary
-        if: always()
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
         run: |
           {
             echo '### Dry run (diff against live content)'
@@ -113,17 +114,31 @@ jobs:
         working-directory: scripts
         run: node sync-docs.mjs --frozen-map 2>&1 | tee sync-output.log
 
+      # The one-line "Summary: N created, M updated, K unchanged, D drafted, F failed." is
+      # sync-docs.mjs's own last stdout line (see sync-docs.mjs's final console.log) — surfaced
+      # here as its own heading so it's the first thing visible without expanding anything. The
+      # full per-page log (every ✓ created/updated/unchanged line, plus warnings) goes in a
+      # collapsed <details> block right after, for when the count alone isn't enough.
       - name: Append publish summary
-        if: always()
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.dry_run != 'true'
         run: |
           {
-            echo '### Publish (live sync)'
+            echo '### Publish summary'
+            echo
+            if [ -f scripts/sync-output.log ]; then
+              grep '^Summary:' scripts/sync-output.log || echo '(no summary line — an earlier step failed before sync-docs.mjs finished; see full log below)'
+            else
+              echo '(publish did not run — an earlier step failed before it started)'
+            fi
+            echo
+            echo '<details><summary>Full log</summary>'
             echo
             echo '```'
             if [ -f scripts/sync-output.log ]; then
               cat scripts/sync-output.log
             else
-              echo '(skipped — workflow_dispatch requested dry_run, or an earlier step failed before this ran)'
+              echo '(publish did not produce output — an earlier step failed before it ran)'
             fi
             echo '```'
+            echo '</details>'
           } >> "$GITHUB_STEP_SUMMARY"

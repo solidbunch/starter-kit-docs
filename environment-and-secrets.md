@@ -1,4 +1,4 @@
-# Environment Configuration and Secret Management
+# Environment and Secrets
 
 ### Environment Configuration
 
