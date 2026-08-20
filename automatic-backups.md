@@ -6,9 +6,9 @@ To activate backups:
 1. Edit `./config/environment/.env.type.[environment_type]` file - enable `APP_WP_BACKUP_ENABLE`
 
 
-2. Check crontab file in `./config/crontabs` - change cronjob time if it needs.
+2. Check crontab file in `./config/cron/crontabs` - change cronjob time if it needs.
 
 
-3. If you have more than one database (maybe custom databases), check `mariadb-dump` command parameters in `./docker/cron/start-backup.sh`
+3. If you have more than one database (maybe custom databases), check `mariadb-dump` command parameters in `./sh/cron/start-backup.sh`
 
 Backups will appear in the `./backups` folder, logs in the docker cron container logs
