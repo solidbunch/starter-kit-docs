@@ -110,6 +110,7 @@ For the GitHub secret, escape it; for local `.env.secret` usage, don't:
 
 If you also have paid `kit-modules` licenses, add an `http-basic` entry for
 `licensing.starter-kit.io` to the same JSON object instead of a separate secret:
+
 ```bash
 {\"github-oauth\":{\"github.com\":\"ACCESS_TOKEN_GITHUB\"},\"http-basic\":{\"licensing.starter-kit.io\":{\"username\":\"<your email>\",\"password\":\"<your license password>\"}}}
 ```
