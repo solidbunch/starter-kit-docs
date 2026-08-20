@@ -33,6 +33,12 @@ make tf dev apply
 
 > Always run `make tf [env] plan` and review the diff before `make tf [env] apply`.
 
+> The GitHub provisioning workflow offers `stage` as an environment choice alongside `dev` and
+> `prod`, but only `kit-modules/basis/terraform/envs/dev/`, `.../prod/`, and `.../shared/` ship
+> with the project — there is no `.../stage/` directory yet. Running `make tf stage ...` (or
+> triggering the workflow with `stage`) will fail until that env directory is created first,
+> following the pattern of `dev/`/`prod/`.
+
 ### Automate server apps with Ansible
 
 For running server setup automations use this steps:
