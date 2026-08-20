@@ -1,4 +1,4 @@
-## Project Architecture and Structure
+# Project Architecture and Structure
 
 StarterKit Foundation is composed of two core layers: the environment (containers, configuration files, and scripts) and the WordPress application (core, content, and theme). The architecture is structured for modularity, scalability, and predictability across local, staging, and production workflows.
 
@@ -27,7 +27,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 ├── .editorconfig             # Editor configuration for consistent coding style
 ├── composer.json             # PHP and WordPress dependencies
 ├── docker-compose.yml        # Main Docker Compose file
-├── docker-compose.build.yml  # Additional services (Node.js, MailHog, etc.)
+├── docker-compose.toolkit.yml # Additional services (Composer, Node.js, MailHog, etc.)
 └── Makefile                  # Developer-friendly command aliases
 ```
 
@@ -42,13 +42,14 @@ The project defines multiple containers to cover all development and runtime nee
 * **nginx** – Web server container using templated configs
 * **cron** – Cron service for scheduled tasks
 
-**Additional services** (`docker-compose.build.yml`):
+**Additional services** (`docker-compose.toolkit.yml`):
 
 * **composer** – Composer service for managing PHP/WordPress dependencies
 * **node** – Node.js container for building front-end assets
 * **phpmyadmin** – Optional phpMyAdmin interface for local DB access
 * **certbot** – Let's Encrypt container for SSL certificate management
 * **mailhog** – Optional SMTP server for testing outgoing email
+* **iac** – Infrastructure-as-code container for Terraform/Ansible tooling
 
 These services ensure developers and DevOps engineers have all the tools needed to work efficiently across environments.
 
