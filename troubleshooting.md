@@ -149,12 +149,12 @@ fails with an error similar to:
 
 ```text
 Could not delete /srv/web/wp-core/wp-content: 
-Install of solidbunch/wordpress-core failed
+Install of solidbunch/wordpress-core-no-content failed
 ```
 
 **Cause:**
 
-The `php` container is running and holds a lock on the `web/wp-core/wp-content` directory. Composer cannot replace the `solidbunch/wordpress-core` package while this directory exists.
+The `php` container is running and holds a lock on the `web/wp-core/wp-content` directory. Composer cannot replace the `solidbunch/wordpress-core-no-content` package while this directory exists.
 
 **Resolution:**
 
