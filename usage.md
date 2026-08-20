@@ -15,7 +15,7 @@ To begin compiling front-end assets, just run:
 make watch
 ```
 
-This runs `npm run dev` inside the Node container with file watching enabled.
+This runs `npm run watch` (mix watch) inside the Node container with file watching enabled.
 
 **Now you can start coding your theme or plugins. Next, let's cover the most common commands you will use during development**.
 
