@@ -1,4 +1,4 @@
-## Advanced Installation Options
+# Advanced Installation Options
 
 If you prefer not to use the default git clone flow, or you're working in a restricted environment, the following alternative installation methods are supported:
 
