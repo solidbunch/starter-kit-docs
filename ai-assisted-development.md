@@ -34,7 +34,9 @@ relevant to what you're editing:
 | `infrastructure.md`  | editing `kit-modules/**`, `*.tf`, `*.tfvars` — Terraform/Ansible/licensing       |
 | `docker.md`          | editing `docker-compose*.yml`, `dockerfiles/**`, related shell scripts          |
 | `ci.md`              | editing `.github/workflows/**` — deploy and provisioning pipelines             |
+| `gitlab-ci.md`       | editing `.gitlab-ci.yml`, `.gitlab/ci/**` — the GitLab counterpart to `ci.md`'s GitHub Actions |
 | `config.md`          | editing `config/**` — env files, nginx templates, PHP ini, cron, certbot, SSL   |
+| `design-verification.md` | editing theme/addon blocks, templates, parts, patterns, `assets/src/styles/**`, or any `*.scss` file |
 
 This is what makes ongoing work (§4) different from asking a generic AI assistant for help: Claude
 already knows the hard rules, the folder layout, and the reasoning behind them before you type
@@ -53,6 +55,7 @@ triggered by describing what you want in plain English). StarterKit ships these:
 | `create-gutenberg-block`      | `web/wp-content/themes/<theme>/.claude/skills/create-gutenberg-block/`                    | Scaffold a new Gutenberg block following the theme's existing block conventions.                            |
 | `convert-to-classic-theme`    | `web/wp-content/themes/<theme>/.claude/skills/convert-to-classic-theme/`                  | Switch the theme from FSE (Full Site Editing) to classic PHP templates. Keeps Gutenberg/blocks — only the page-assembly mechanism changes; the block editor becomes a per-post-type opt-in. |
 | `create-classic-template`     | `web/wp-content/themes/<theme>/.claude/skills/create-classic-template/`                   | Turn a static HTML design handoff (blog, landing, listing page) into a classic PHP template, reusing existing blocks/repositories/Page Builder Carbon Fields contract. Requires the theme already converted to classic. |
+| `create-post-type`            | `web/wp-content/themes/<theme>/.claude/skills/create-post-type/`                          | Registers a new custom post type (and optional taxonomy, repository, Carbon Fields meta container) in this theme — the full storage bundle a content entity needs, not just `register_post_type()`. |
 
 Theme skills aren't auto-discovered from a Foundation-only Claude Code session (skill
 auto-discovery is project-root scoped) — ask Claude to read and follow them by their path directly,
