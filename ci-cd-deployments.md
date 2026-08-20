@@ -41,11 +41,11 @@ they don't depend on each other and can coexist.
 
 Workflow files in `.github/workflows/`:
 
-| File                             | Trigger                             | What it does                                                                 |
-| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
-| `workflow-deploy-develop.yml`    | push to `develop` branch, or manual | deploys to **dev** (`develop.starter-kit.io`)                                |
-| `workflow-deploy-production.yml` | manual only                         | deploys to **prod** (`starter-kit.io`) — no auto-deploy on push              |
-| `job-provision.yml`              | manual only                         | provisions infrastructure (Terraform + Ansible) for `dev` / `stage` / `prod` |
+| File                             | Trigger                             | What it does                                                                                                           |
+| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `workflow-deploy-develop.yml`    | push to `develop` branch, or manual | deploys to **dev** (host set by `SSH_HOST_ALIAS` in the workflow file, e.g. `dev.<your-domain>`)                       |
+| `workflow-deploy-production.yml` | manual only                         | deploys to **prod** (host set by `SSH_HOST_ALIAS` in the workflow file, e.g. `<your-domain>`) — no auto-deploy on push |
+| `job-provision.yml`              | manual only                         | provisions infrastructure (Terraform + Ansible) for `dev` / `stage` / `prod`                                           |
 
 ### Step 1 — create the GitHub Environments
 
@@ -75,7 +75,8 @@ Go to **Settings → Secrets and variables → Actions → Secrets** and add:
 | `TFPLAN_PASSPHRASE` | no        | provision only     | Enables encrypted Terraform plan review — see Step 4                                                                                       |
 | `GITHUB_TOKEN`      | —         | —                  | Provided automatically by GitHub, nothing to set up                                                                                        |
 
-`SSH_CONFIG` example (add both the `develop` and prod host aliases used above):
+`SSH_CONFIG` example — each `Host` alias must match the `SSH_HOST_ALIAS` value in the
+corresponding workflow file (`workflow-deploy-develop.yml`, `workflow-deploy-production.yml`):
 
 ```conf
 # SSH_CONFIG
@@ -83,15 +84,15 @@ Host *
    IdentitiesOnly yes
    StrictHostKeyChecking no
 
-# Develop server ssh alias
-Host develop.starter-kit.io
-  HostName 00.00.00.00
+# Dev server ssh alias — must match workflow-deploy-develop.yml's SSH_HOST_ALIAS
+Host <dev-host-alias>
+  HostName <dev server IP or hostname>
   User serverusername
   Port 22
 
-# Prod server ssh alias
-Host starter-kit.io
-  HostName 00.00.00.00
+# Prod server ssh alias — must match workflow-deploy-production.yml's SSH_HOST_ALIAS
+Host <prod-host-alias>
+  HostName <prod server IP or hostname>
   User serverusername
   Port 22
 ```
