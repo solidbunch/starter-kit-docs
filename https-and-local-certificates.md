@@ -24,9 +24,11 @@ This will:
 
 - Read `APP_DOMAIN` from `.env`
 
-- Temporarily stop NGINX
+- Generate a temporary 1-day dummy self-signed certificate
 
-- Run 🔐 Certbot in standalone mode (`port 80` must be open publicly)
+- Start NGINX (`docker compose up -d nginx`) so it can serve the ACME challenge
+
+- Delete the dummy certificate, then run 🔐 Certbot (`certbot certonly`) using the **webroot** authenticator configured in `config/certbot/cli.ini` (`port 80` must be reachable publicly)
 
 - Save certificate files to:
 
@@ -57,7 +59,14 @@ Let’s Encrypt does **not** issue certificates for local domains like `.localho
 
 ### Option 1: mkcert (recommended)
 
-Install [`mkcert`](https://github.com/FiloSottile/mkcert) and run:
+The one-command path is `make local-cert`, which generates and installs a locally-trusted (mkcert) certificate for you. Prerequisite: [`mkcert`](https://github.com/FiloSottile/mkcert) must be on your host `PATH`, with `mkcert -install` run once beforehand (the script does not install `mkcert` itself). The command is idempotent — it skips regeneration if a valid certificate already exists; pass `make local-cert force` to regenerate anyway.
+
+```bash
+mkcert -install
+make local-cert
+```
+
+If you prefer to run `mkcert` manually (or need to see what `make local-cert` does under the hood), install [`mkcert`](https://github.com/FiloSottile/mkcert) and run:
 
 ```bash
 mkcert -install
