@@ -150,22 +150,38 @@ test('convertFile skips the document\'s title heading (level 2) and still conver
   assert.deepEqual(scaffold.attrs, { level: 3 });
 });
 
-test('convertFile splits an ordered list around a nested fenced code block into sibling core/list / starter-kit/code / core/list nodes, and logs a matching warning (ai-assisted-development.md "Bootstrapping" section)', () => {
-  const file = 'ai-assisted-development.md';
-  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+test('convertFile splits an ordered list around a nested fenced code block into sibling core/list / starter-kit/code / core/list nodes, and logs a matching warning (synthetic source, two fences)', () => {
+  const file = 'overview.md'; // any manifest file name works — convertFile only uses it for lookup/messages
+  const source = [
+    '# Title',
+    '',
+    'Intro paragraph.',
+    '',
+    '1. **Clone the template**:',
+    '',
+    '   ```bash',
+    '   git clone https://github.com/solidbunch/starter-kit-foundation.git my-project',
+    '   cd my-project',
+    '   ```',
+    '',
+    '2. **Start Claude Code** in the project root:',
+    '',
+    '   ```bash',
+    '   claude',
+    '   ```',
+    '',
+    '3. Third step',
+    '4. Fourth step',
+    '',
+    '---',
+    '',
+  ].join('\n');
   const { blocks, warnings } = convertFile({ file, source, manifest });
 
-  const startIndex = blocks.findIndex(
-    (b) => b.blockName === 'starter-kit/heading' && b.innerHTML.includes('Bootstrapping a new project')
-  );
-  assert.notEqual(startIndex, -1, 'expected to find the "Bootstrapping a new project" heading');
-
-  // The section's numbered list is interrupted twice by a fenced code block (the "git clone"
-  // step and the "claude" step), splitting one logical <ol> into three sibling core/list nodes
-  // with starter-kit/code nodes in between, at the same (top-level) sibling position.
-  const sequence = blocks
-    .slice(startIndex + 1, startIndex + 8)
-    .map((b) => b.blockName);
+  // The numbered list is interrupted twice by a fenced code block (the "git clone" step and the
+  // "claude" step), splitting one logical <ol> into three sibling core/list nodes with
+  // starter-kit/code nodes in between, at the same (top-level) sibling position.
+  const sequence = blocks.map((b) => b.blockName);
   assert.deepEqual(sequence, [
     'core/paragraph',
     'core/list',
@@ -176,10 +192,7 @@ test('convertFile splits an ordered list around a nested fenced code block into 
     'core/separator',
   ]);
 
-  const [firstList, firstCode, secondList, secondCode, thirdList] = blocks.slice(
-    startIndex + 2,
-    startIndex + 7
-  );
+  const [, firstList, firstCode, secondList, secondCode, thirdList] = blocks;
   assert.equal(firstCode.attrs.language, 'bash');
   assert.match(firstCode.innerHTML, /git clone https:\/\/github\.com\/solidbunch\/starter-kit-foundation\.git my-project/);
   assert.equal(secondCode.attrs.language, 'bash');
@@ -187,7 +200,7 @@ test('convertFile splits an ordered list around a nested fenced code block into 
 
   // Each section's `start` continues the logical numbering across the two splits: the first
   // section (1 item, "Clone the template") omits `start` (implicit 1); the second (1 item,
-  // "Start Claude Code") carries `start: 2`; the third (6 items, the remaining steps) carries
+  // "Start Claude Code") carries `start: 2`; the third (2 items, the remaining steps) carries
   // `start: 3`.
   assert.deepEqual(firstList.attrs, { ordered: true });
   assert.equal(firstList.innerHTML, '\n<ol class="wp-block-list"></ol>\n');
@@ -197,8 +210,8 @@ test('convertFile splits an ordered list around a nested fenced code block into 
   assert.equal(thirdList.innerHTML, '\n<ol start="3" class="wp-block-list"></ol>\n');
 
   assert.deepEqual(warnings, [
-    'ai-assisted-development.md:75 ordered list split by nested code block',
-    'ai-assisted-development.md:82 ordered list split by nested code block',
+    `${file}:7 ordered list split by nested code block`,
+    `${file}:14 ordered list split by nested code block`,
   ]);
 });
 
@@ -231,9 +244,23 @@ test('convertFile computes `start` as a running tally, not a per-section constan
   assert.deepEqual(warnings, [`${file}:7 ordered list split by nested code block`]);
 });
 
-test('convertFile\'s split unordered list (https-and-local-certificates.md) stays attrs {} with no start anywhere, warning reworded', () => {
-  const file = 'https-and-local-certificates.md';
-  const source = readFileSync(path.join(repoRoot, file), 'utf8');
+test('convertFile\'s split unordered list (synthetic source) stays attrs {} with no start anywhere, warning reworded', () => {
+  const file = 'overview.md'; // any manifest file name works — convertFile only uses it for lookup/messages
+  const source = [
+    '# Title',
+    '',
+    '- Read `APP_DOMAIN` from `.env`',
+    '',
+    '- Save certificate files to:',
+    '',
+    '  ```',
+    '  config/ssl/live/<your-domain>/fullchain.pem',
+    '  config/ssl/live/<your-domain>/privkey.pem',
+    '  ```',
+    '',
+    '- Restart NGINX with HTTPS enabled',
+    '',
+  ].join('\n');
   const { blocks, warnings } = convertFile({ file, source, manifest });
 
   const lists = blocks.filter((b) => b.blockName === 'core/list');
@@ -243,7 +270,7 @@ test('convertFile\'s split unordered list (https-and-local-certificates.md) stay
     assert.doesNotMatch(list.innerHTML, /start=/);
   }
 
-  assert.deepEqual(warnings, ['https-and-local-certificates.md:33 unordered list split by nested code block']);
+  assert.deepEqual(warnings, [`${file}:7 unordered list split by nested code block`]);
 });
 
 test('convertFile\'s never-split ordered list (automatic-backups.md) carries attrs {ordered:true} with no start key', () => {
