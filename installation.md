@@ -46,11 +46,11 @@ make install [environment_type]
 
 1. If `.env.secret` is missing, it is generated from a template
 2. `.env.main`, `.env.type.[environment_type]`, and `.env.secret` are merged into root folder `.env` file
-3. Composer dependencies are installed (PHP), for both the root project and the theme, using the toolkit compose file's `composer` container
+3. Composer dependencies are installed (PHP), for both the root project and the theme, using the toolkit compose file's `composer` container — this step prompts `Are you sure? (y/n):` before it runs; answer `y` to continue
 4. npm dependencies are installed and frontend assets are built in a single call (`npm run install-<APP_BUILD_MODE>`), using the toolkit compose file's `node` container
 5. Docker containers for the main project stack are pulled and started
 6. The database availability is checked
-7. WordPress is installed via WP-CLI: an admin user is created and the default theme is activated
+7. WordPress is installed via WP-CLI: an admin user is created, all installed plugins are activated (`wp plugin activate --all`), and permalinks are set to `/%postname%/`
 
 > ♻️ **Note** You can safely re-run `make install` at any time - it is **idempotent**.
 

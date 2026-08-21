@@ -2,6 +2,8 @@
 
 Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.
 
+> 🔀 **Multi-instance mode:** everything below applies when `APP_MULTI_INSTANCE=0` (the default, single-instance NGINX setup). When `APP_MULTI_INSTANCE=1`, TLS is terminated by Traefik instead — `make ssl` and `make local-cert` skip their NGINX/Certbot steps and manage certificates under `kit-modules/proxy/` instead. See `kit-modules/proxy/README.md`. `proxy` is a paid kit-module, not included by default — see [Infrastructure](infrastructure.md).
+
 ## Production & Staging
 
 **1. Enable HTTPS in environment:**

@@ -1,5 +1,11 @@
 # Infrastructure
 
+> 💰 **Kit-modules are paid add-ons.** `basis`, `monitoring-client`, `monitoring-server`, and
+> `proxy` are not part of the free/default Foundation download — they're only granted by a **Pro
+> tier or higher** license, purchased at [starter-kit.io](https://starter-kit.io). Without a valid
+> license, `kit-modules/` stays empty and everything below doesn't apply yet. Already bought one?
+> See [Quick start after purchase](quick-start-after-purchase.md) to unlock it.
+
 Terraform and Ansible are not part of the Foundation repo itself — they ship inside
 `kit-modules/basis`, a licensed sub-project that Composer installs (as its own VCS repo) once a
 valid SolidBunch license is configured. It resolves alongside two other required, licensed
@@ -56,3 +62,29 @@ outputs by default). Add `static` as a third argument (`make ansible dev playboo
 a hand-maintained `inventory.yml` instead.
 
 After that you will be able to run CI/CD deployment pipelines automations.
+
+### Monitoring
+
+The `monitoring-client` kit-module ships a fluent-bit pipeline that forwards container logs to a
+Loki instance run by `monitoring-server`. Toggle it with:
+
+```bash
+make monitoring on
+make monitoring off
+```
+
+`make mon` is a shorthand for the same target.
+
+### Reverse proxy (multi-instance)
+
+The optional `proxy` kit-module runs a Traefik reverse proxy in front of multiple project
+instances on the same host, including TLS termination when `APP_MULTI_INSTANCE=1` (see
+[HTTPS & Local Certificates](https-and-local-certificates.md)). If the module isn't installed,
+these commands are no-ops:
+
+```bash
+make proxy start
+make proxy stop
+make proxy logs
+make proxy deploy [env]
+```

@@ -18,7 +18,7 @@ Secrets are generated automatically during installation using a template file:
 
 - Template path: `sh/env/.env.secret.template`
 - The template uses two placeholders: `generate_this_pass` for passwords (e.g. `MYSQL_ROOT_PASSWORD=generate_this_pass`) and `generate_key` for WordPress authentication keys/salts (e.g. `WP_AUTH_KEY='generate_key'`). The generator script also supports a third placeholder, `generate_safe_token`, which the shipped template does not currently use.
-- During installation, the `secret-gen.sh` script replaces these placeholders with randomly generated secure values
+- During installation, `secret-gen.sh` runs `pass_gen.sh` (in a disposable container), which replaces these placeholders with randomly generated secure values
 - The resulting `.env.secret` file is excluded from Git via `.gitignore`
 
 You do **not** need to manually create `.env.secret`. It is always generated based on the template.

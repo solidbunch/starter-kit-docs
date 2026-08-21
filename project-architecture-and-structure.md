@@ -16,6 +16,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 ├── kit-modules/               # Licensed sub-projects, Composer-installed, git-ignored (basis, monitoring-client/server, opt-in proxy)
 ├── logs/                     # Log files for WordPress, PHP, nginx
 ├── sh/                       # Shell scripts: setup, CLI wrappers, backups
+├── tests/                    # Automated tests
 ├── web/                      # Web application folder
 │   ├── wp-config/            # WordPress config (wp-config.php) & files that should be copied to web root
 │   ├── wp-content/           # Themes, plugins, uploads
@@ -28,6 +29,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 ├── composer.json             # PHP and WordPress dependencies
 ├── docker-compose.yml        # Main Docker Compose file
 ├── docker-compose.toolkit.yml # Additional services (Composer, Node.js, MailHog, etc.)
+├── docker-compose.localci.yml # Local CI/CD provisioning emulation harness (`make localci`)
 └── Makefile                  # Developer-friendly command aliases
 ```
 
@@ -52,6 +54,13 @@ The project defines multiple containers to cover all development and runtime nee
 * **iac** – Infrastructure-as-code container for Terraform/Ansible tooling
 
 These services ensure developers and DevOps engineers have all the tools needed to work efficiently across environments.
+
+**Local CI/CD emulation harness** (`docker-compose.localci.yml`, brought up only by `make localci`):
+
+* **localstack** – emulates AWS S3/DynamoDB/EC2/STS for testing Terraform locally
+* **ansible-target** – disposable target host for testing Ansible playbooks locally
+
+See `sh/local-ci/README.md` for details.
 
 ### WordPress Application
 

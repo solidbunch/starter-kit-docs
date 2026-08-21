@@ -63,7 +63,9 @@ These steps ensure WordPress core receives the required config after dependency 
 - **WordPress Core**: `solidbunch/wordpress-core-no-content`
 - **Kit-Modules** — `basis`, `monitoring-client`, `monitoring-server` (required, licensed — resolve
   to real code once a valid license is configured; without one, Composer resolves an empty
-  `metapackage` stub instead), plus opt-in `proxy`. See [Infrastructure](infrastructure.md).
+  `metapackage` stub instead), plus opt-in `proxy`. Paid add-ons, not included by default — see
+  [Infrastructure](infrastructure.md) for tiers/purchase and
+  [Quick start after purchase](quick-start-after-purchase.md) for licensing setup.
 - **WordPress Theme, Addon and Plugins**
 - **Development Dependencies**
 
@@ -95,8 +97,8 @@ web/
 - **WPackagist**: WordPress plugin/theme repository
 - **SolidBunch WordPress Core**: Custom WordPress core package
 - **SolidBunch Licensing**: private Composer repository (`licensing.starter-kit.io`) that resolves
-  `basis`, `monitoring-client`, `monitoring-server`, and `starter-kit-addon` once a valid license
-  is configured — see [Infrastructure](infrastructure.md)
+  `basis`, `monitoring-client`, `monitoring-server`, and `proxy` once a valid license is
+  configured — see [Infrastructure](infrastructure.md)
 - **Starter Kit Theme**: Development theme repository
 - **Kit-Modules**: Licensed modules packages, installed to `kit-modules/{$name}/`
 
@@ -152,6 +154,16 @@ composer run switch-theme-dev
 ```
 
 **CI-only**: in DEV deploys (CI/CD) this command runs inside the Composer container to pin the theme to the `dev-develop` branch and refresh the lock. Production deployments use the default theme version from `composer.json` (`dev-master`). See `.github/workflows/job-deploy.yml` step "Switch Theme Version for Dev Environment".
+
+### Theme Linting & Tests
+
+The theme's own `composer.json` (`web/wp-content/themes/starter-kit-theme/composer.json`) defines:
+- `lint` → `phpcs --standard=phpcs.xml`
+- `lintfix` → `phpcbf --standard=phpcs.xml` (auto-fixes what `lint` can)
+- `tests` → `vendor/bin/phpunit -c phpunit.xml --colors=always --testdox`
+
+`make lint` runs `composer lint` (PHP) and `npm run lint` (JS) together, both inside the theme
+directory. See [Makefile Reference](makefile-reference.md).
 
 ### Post-Installation Scripts
 ```bash

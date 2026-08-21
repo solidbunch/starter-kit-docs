@@ -5,6 +5,11 @@ a working `composer update`. The checkout success page and the purchase email sh
 with your real license key, email, and licensing host already filled in — copy the ready-made line
 from there rather than retyping it here.
 
+> 💰 **Haven't purchased yet?** Kit-modules (`basis`, `monitoring-client`, `monitoring-server`,
+> `proxy`) are paid add-ons, not included in the free/default Foundation download — they require a
+> Pro tier or higher license, purchased at [starter-kit.io](https://starter-kit.io). See
+> [Infrastructure](infrastructure.md) for what each module does.
+
 ## 1. Your license key
 
 The license key is the Composer HTTP-basic **password**; the email address you used at checkout is
@@ -39,9 +44,9 @@ See [CI/CD Deployments](ci-cd-deployments.md) for how the deploy pipeline consum
 ## 4. composer.json — repository and modules
 
 A StarterKit Foundation project already ships both entries below — this step is only for a project
-that lost them, or one that was not built on Foundation. `repositories[0]` points at the licensing
-repository, and one `require` entry per granted module is added at `"*"`; constraints are left at
-`*` and should be pinned per project.
+that lost them, or one that was not built on Foundation. One `repositories` entry points at the
+licensing repository, and one `require` entry per granted module is added at `"*"`; constraints are
+left at `*` and should be pinned per project.
 
 ```json
 {
