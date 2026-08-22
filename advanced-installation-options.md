@@ -64,7 +64,9 @@ This converts the StarterKit into your own standalone project — with a fresh G
 composer create-project solidbunch/starter-kit-foundation my-project
 ```
 
-✅ Requires PHP and Composer. Suitable for CI/CD and PHP-centric workflows. Check required PHP version and Composer version in the [StarterKit's `composer.json`](https://github.com/solidbunch/starter-kit-foundation/blob/master/composer.json)
+✅ Requires PHP and Composer. Suitable for CI/CD and PHP-centric workflows. Check the required PHP version in the [StarterKit's `composer.json`](https://github.com/solidbunch/starter-kit-foundation/blob/main/composer.json).
+
+> ⚠️ Several required packages (`basis`, `monitoring-client`, `monitoring-server`) are licensed and resolve from a private Composer repository — `composer create-project` fails on them without `COMPOSER_AUTH` configured globally first. See [Quick start after purchase](quick-start-after-purchase.md).
 
 ---
 

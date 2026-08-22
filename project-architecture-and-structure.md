@@ -4,6 +4,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 
 ```plaintext
 ├── backups/                  # Daily and weekly WordPress media, and database backups
+├── cache/                    # Build cache (auto-generated, e.g. PHP opcache dir bind-mounted into the php container)
 ├── config/                   # Global config files
 │   ├── certbot/              # Let's Encrypt configuration for SSL certificates
 │   ├── cron/                 # Cron jobs for scheduled tasks
@@ -13,7 +14,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 │   └── ssl/                  # SSL certificates and keys
 ├── db-data/                  # Persistent database volume
 ├── dockerfiles/              # Custom Dockerfile definitions
-├── kit-modules/               # Licensed sub-projects, Composer-installed, git-ignored (basis, monitoring-client/server, opt-in proxy)
+├── kit-modules/               # Licensed sub-projects, Composer-installed, git-ignored — basis, monitoring-client/server, and proxy are all required packages once a license is configured; proxy just needs APP_MULTI_INSTANCE=1 to actually activate
 ├── logs/                     # Log files for WordPress, PHP, nginx
 ├── sh/                       # Shell scripts: setup, CLI wrappers, backups
 ├── tests/                    # Automated tests

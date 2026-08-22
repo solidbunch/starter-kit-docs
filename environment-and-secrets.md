@@ -8,9 +8,18 @@ Configuration is layered and environment-specific:
 - `config/environment/.env.type.local.override`, `*.dev.override`, etc. — optional overrides for local, dev, etc. (not committed to Git)
 - `config/environment/.env.secret` — sensitive credentials (auto-generated during install, not committed to Git)
 
-These are merged into a unified `.env` file at runtime using `make` scripts.
+`make env` (via `sh/env/init.sh`) merges the non-secret files above (main → type → override) into
+`.env.runtime` at the repo root. `.env.runtime` is what every service actually reads at runtime —
+each service in `docker-compose.yml`/`docker-compose.toolkit.yml` loads it via `env_file:` — and
+several scripts (`sh/system/local-cert.sh`, `sh/system/certbot.sh`, `sh/system/db-tunnel.sh`,
+`sh/system/validate-nginx.sh`) hard-require it to exist, erroring with "Run `make env` first" if
+it's missing. `.env` is then merged on top by adding `.env.secret`, and is used by `docker compose`
+itself for `${VAR}` interpolation inside each service's `environment:` block. Both `.env` and
+`.env.runtime` are generated files, excluded from Git via `.gitignore`.
 
-> ⚠️ **Tip:** Do not edit the `.env` file directly. Instead, modify the appropriate `.env.type.*` files or create an override file for local development.
+> ⚠️ **Tip:** Do not edit `.env` or `.env.runtime` directly — they're regenerated on every `make
+> env`/`make install`. Instead, modify the appropriate `.env.type.*` files or create an override
+> file for local development.
 
 ### Secret Management
 

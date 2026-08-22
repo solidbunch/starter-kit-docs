@@ -12,6 +12,7 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | `PARAMS`                      | Everything you type **after** the target — `make <target> [params...]` — forwarded to the called script.                     |
 | `PARAM1…PARAM3`               | Shortcuts for the first three extra words — `make <target> [param1] [param2] [param3]`.                                      |
 | `DEFAULT_USER`                | Docker user name read from `.env.main`, in result have `CURRENT_UID` and `CURRENT_GID`, so same IDs as Host user             |
+| `COMPOSE_OVERRIDE`            | Extra `docker compose` flags injected by the `proxy` kit-module (`kit-modules/proxy/bin/compose-flags.sh`) when it's installed, to merge in the multi-instance compose overrides. Resolves to nothing if `proxy` isn't installed. |
 
 ---
 
@@ -23,7 +24,7 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | **make i**                              | `make install`                                        | Alias                                                  |
 | **make secret**                         | `sh/env/secret-gen.sh`                                | Create `.env.secret`                                   |
 | **make env \[environment\_type]**       | `sh/env/init.sh $(PARAMS)`                            | Re-build root `.env` from parts                        |
-| **make ssl**                            | `bash ./sh/system/certbot.sh $(PARAMS)`               | Obtain or renew SSL certificates                       |
+| **make ssl**                            | `bash ./sh/system/certbot.sh $(PARAMS)`               | Obtain or renew SSL certificates — no-op when `APP_MULTI_INSTANCE=1` (Traefik handles TLS instead) |
 | **make local-cert \[force]**            | `bash ./sh/system/local-cert.sh $(PARAMS)`            | Locally-trusted (mkcert) HTTPS certificate for local dev, single- or multi-instance mode; `force` regenerates even if a valid cert exists |
 | **make core-install**                   | `docker compose $(COMPOSE_OVERRIDE) exec php su -c "bash /shell/wp-cli/core-install.sh" $(DEFAULT_USER)` | Idempotent WordPress core install                      |
 | **make watch**                          | `sh/dev/npm-watch.sh $(PARAMS)`                       | Front-end watch with BrowserSync                       |
@@ -32,26 +33,26 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | **make down**                           | `docker compose $(COMPOSE_OVERRIDE) down -v`          | Stop containers and drop named volumes [^localci]      |
 | **make restart \[environment\_type]**   | `sh/env/init.sh $(PARAMS)` -> `docker compose $(COMPOSE_OVERRIDE) restart` | Quick service restart                                  |
 | **make recreate \[environment\_type]**  | `sh/env/init.sh $(PARAMS)` -> `docker compose $(COMPOSE_OVERRIDE) up -d --force-recreate` | Rebuild & replace every container                      |
-| **make import \<file.sql>**             | `sh/database/import.sh -f $(PARAM1) -t` then `docker compose $(COMPOSE_OVERRIDE) exec php su -c "bash /shell/wp-cli/search-replace.sh" $(DEFAULT_USER)` | Import SQL dump, then run search/replace to fix URLs   |
+| **make import \<file.sql>**             | `sh/database/import.sh -f $(PARAM1) -t` then `docker compose $(COMPOSE_OVERRIDE) exec php su -c "bash /shell/wp-cli/search-replace.sh" $(DEFAULT_USER)` | Import SQL dump, then run search/replace to fix URLs — prompts `Are you sure? (y/n):` before proceeding |
 | **make export**                         | `sh/database/export.sh`                               | Dump current DB to `tmp/`                              |
 | **make replace \[search] \[replace]**   | `docker compose $(COMPOSE_OVERRIDE) run --rm php su -c "bash /shell/wp-cli/search-replace.sh $(PARAMS)" $(DEFAULT_USER)` | Database search/replace                                |
-| **make migrate \<source\> \<dest\>**    | `sh/system/migrate.sh -s $(PARAM1) -d $(PARAM2) -t`   | Push/pull DB between environments                      |
+| **make migrate \<source\> \<dest\>**    | `sh/system/migrate.sh -s $(PARAM1) -d $(PARAM2) -t`   | Push/pull DB between environments — prompts `Are you sure? (y/n):` before proceeding, no bypass flag |
 | **make pma**                            | `docker compose -f docker-compose.toolkit.yml run --service-ports --rm phpmyadmin` | Throw-away phpMyAdmin session              |
 | **make db-tunnel start\|stop\|status \[port]** | `bash ./sh/system/db-tunnel.sh $(PARAMS)`        | Local TCP tunnel to an instance's MariaDB (default port 3306) when `APP_MULTI_INSTANCE=1` hides the host port; run `make up` first |
 | **make mailhog**                        | `docker-compose -f docker-compose.toolkit.yml run --service-ports --rm --name mailhog mailhog` | MailHog UI for local SMTP                  |
 | **make log \[service]**                 | `docker compose logs -f $(PARAMS)`                    | Tail service logs                                      |
-| **make run \<service\>**                | `sh/dev/run.sh run $(PARAMS)`                         | Starts a one-off container with shell                  |
-| **make exec \<service\>**               | `sh/dev/run.sh exec $(PARAMS)`                        | Opens a shell in running container                     |
+| **make run \<service\> \[user]**        | `sh/dev/run.sh run $(PARAMS)`                         | Starts a one-off container with shell. `service` `wp` is an alias for `php`; optional `user` overrides the container user |
+| **make exec \<service\> \[user]**       | `sh/dev/run.sh exec $(PARAMS)`                        | Opens a shell in running container. Same `wp`→`php` alias and optional `user` override as `make run` |
 | **make lint**                           | `docker compose -f docker-compose.toolkit.yml run -it --rm composer su -c "cd web/wp-content/themes/${WP_DEFAULT_THEME} && composer lint" $(DEFAULT_USER)` then `docker compose -f docker-compose.toolkit.yml run -it --rm node su -c "cd wp-content/themes/${WP_DEFAULT_THEME} && npm run lint" $(DEFAULT_USER)` | PHP & JS linters inside toolkit containers |
 | **make basis**                          | `docker compose -f docker-compose.toolkit.yml run --rm -it iac su -c "cd /srv/kit-modules/basis && bash" $(DEFAULT_USER)` | Interactive shell in the IaC container, `cd`'d into `kit-modules/basis` [^kitmodule] |
 | **make tf \<env\> \<command\>**         | `kit-modules/basis/sh/terraform.sh -e $(PARAM1) -c $(PARAM2)` | Run Terraform (`init`, `plan`, `apply`, `destroy`) for an environment [^localci] [^kitmodule] |
 | **make ansible \<env\> \<playbook\> \[static]** | `kit-modules/basis/sh/ansible.sh -e $(PARAM1) -a $(PARAM2)` (adds `-s` if the third word is `static`) | Provision or deploy with Ansible; inventory is generated from Terraform outputs unless `static` is passed [^localci] [^kitmodule] |
-| **make docker build\|push \[service\]** | `sh/system/docker.sh $(PARAMS)`                       | Build, push docker images to Registry                  |
-| **make docker clean\|prune**            | `sh/system/docker.sh $(PARAMS)`                       | Prune all docker containers, images, volumes, networks |
+| **make docker build\|push \[service\]** | `sh/system/docker.sh $(PARAMS)`                       | Build, push docker images to Registry — `push` asks `Do you want to push <service> image? (y/n)` per image; running it non-interactively (e.g. CI) reads EOF and silently skips every image |
+| **make docker clean\|prune**            | `sh/system/docker.sh $(PARAMS)`                       | Prune all docker containers, images, volumes, networks — unscoped, affects **every** Docker project on the host, not just this one |
 | **make docker-login**                   | `sh/system/docker.sh login`                           | Registry auth only (ghcr.io) — no build/push           |
-| **make monitoring \[on\|off\]**         | `kit-modules/monitoring-client/sh/monitoring.sh -m $(PARAM1)` | Run the monitoring-client scenario (alias: `make mon`) [^kitmodule] |
-| **make proxy start\|stop\|logs\|deploy \<env\>** | `bash ./kit-modules/proxy/bin/proxy.sh $(PARAMS)` | Reverse proxy for multi-instance mode — requires the solidbunch/proxy kit module; `deploy <env>` is used by CI [^kitmodule] |
-| **make localci up\|down\|tf\|ansible\|act** | `sh/local-ci/*` (dispatched by the first parameter) | Local CI/CD provisioning emulation harness — see `sh/local-ci/README.md` |
+| **make monitoring \[on\|off\]**         | `kit-modules/monitoring-client/sh/monitoring.sh -m $(PARAM1)` | Run the monitoring-client scenario (alias: `make mon`) — `on` is a no-op unless `APP_LOKI_ENABLE=1` [^kitmodule] |
+| **make proxy start\|stop\|down\|logs\|deploy \<env\>** | `bash ./kit-modules/proxy/bin/proxy.sh $(PARAMS)` | Reverse proxy for multi-instance mode — requires the solidbunch/proxy kit module; `down` is an alias for `stop`; `deploy <env>` is used by CI [^kitmodule] |
+| **make localci up\|down\|tf\|ansible\|act** | `sh/local-ci/*` (dispatched by the first parameter) | Local CI/CD provisioning emulation harness — `down --force-restore` recovers from a crashed run; see `sh/local-ci/README.md` |
 | **make validate-nginx**                 | `bash ./sh/system/validate-nginx.sh $(PARAMS)`        | Validate nginx config syntax (`nginx -t`) in a throwaway container, no app stack needed |
 
 [^localci]: When `localci` is passed as an additional goal on the same command line (e.g. `make localci up`), this target is a no-op — `localci` runs its own version of the step instead. This is how `make localci up|down|tf|ansible` avoids running the step twice.

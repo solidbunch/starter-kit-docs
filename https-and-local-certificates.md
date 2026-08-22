@@ -2,7 +2,7 @@
 
 Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.
 
-> 🔀 **Multi-instance mode:** everything below applies when `APP_MULTI_INSTANCE=0` (the default, single-instance NGINX setup). When `APP_MULTI_INSTANCE=1`, TLS is terminated by Traefik instead — `make ssl` and `make local-cert` skip their NGINX/Certbot steps and manage certificates under `kit-modules/proxy/` instead. See `kit-modules/proxy/README.md`. `proxy` is a paid kit-module, not included by default — see [Infrastructure](infrastructure.md).
+> 🔀 **Multi-instance mode:** everything below applies when `APP_MULTI_INSTANCE=0` (the default, single-instance NGINX setup). When `APP_MULTI_INSTANCE=1`, TLS is terminated by Traefik instead — `make ssl` just skips (production certs are issued and renewed by Traefik itself, stored in a Docker volume, no host files to manage), and `make local-cert` writes its certificate under `kit-modules/proxy/certs/local/` instead of `config/ssl/live/`. See `kit-modules/proxy/README.md`. `proxy` is a paid kit-module, not included by default — see [Infrastructure](infrastructure.md).
 
 ## Production & Staging
 
@@ -16,7 +16,7 @@ APP_PROTOCOL=https
 
 **2. Issue TLS Certificates via Let’s Encrypt:**
 
-Run the built-in Certbot script:
+Run the built-in Certbot script (requires `.env.runtime` to already exist — run `make env` first if you haven't):
 
 ```bash
 make ssl
@@ -24,13 +24,13 @@ make ssl
 
 This will:
 
-- Read `APP_DOMAIN` from `.env`
+- Read `APP_DOMAIN` from `.env.runtime`
 
 - Generate a temporary 1-day dummy self-signed certificate
 
 - Start NGINX (`docker compose up -d nginx`) so it can serve the ACME challenge
 
-- Delete the dummy certificate, then run 🔐 Certbot (`certbot certonly`) using the **webroot** authenticator configured in `config/certbot/cli.ini` (`port 80` must be reachable publicly)
+- Delete the dummy certificate, then run 🔐 Certbot (`certbot certonly`) using the **webroot** authenticator configured in `config/certbot/cli.ini` (`port 80` must be reachable publicly). For an apex domain (e.g. `example.com`), the cert also covers `www.example.com`; for a subdomain (e.g. `dev.example.com`), only that exact hostname is requested.
 
 - Save certificate files to:
 

@@ -118,6 +118,25 @@ never trust this repo's own docs as a source about themselves.
      in the `.md` files (`grep -ril` across the repo root as a final pass).
    - No live demo hostname remains outside the `licensing.starter-kit.io` exception.
    - `index.md` TOC still mirrors every file's H1.
+7. **Coherence pass — after every edit in this run has landed.** Steps 2–6 verify each file
+   against the code and against this skill's own rules; this step verifies the edited files
+   against *each other*. Re-read only the files you touched this run — this is mechanical, not a
+   second round of code verification, so don't spin up another per-file agent fleet for it, one
+   pass over the touched-file set is enough even on a full sweep:
+   - **Markdown syntax.** Every fenced code block opens and closes, every table row has the same
+     column count as its header separator, every `[text](target)` link and `![...]` image is
+     well-formed, no section was left truncated by an edit.
+   - **Internal links resolve.** For every relative link to another file in this repo
+     (`other-file.md` or `other-file.md#anchor`), confirm `other-file.md` exists and, if there's an
+     `#anchor`, that some heading in that file slugifies to it (GitHub's rule: lowercase, strip
+     punctuation except `-`, spaces → `-`). The usual way this breaks: a link added in step 3
+     points at a heading that got renamed or removed in the same run.
+   - **Cross-file consistency.** This repo's "one fact stated once" house style means duplication
+     should be rare, but real exceptions exist (e.g. `APP_MULTI_INSTANCE` is described in both
+     `ci-cd-deployments.md` and `infrastructure.md`). If step 3 changed a fact that's also stated
+     elsewhere, check the other copy still agrees — don't leave one updated and the other stale.
+   Fix anything caught here before reporting; note in the final report if this pass changed
+   anything beyond what step 3 already accounted for.
 
 ## House style (already established in this repo — follow it, don't replace it)
 

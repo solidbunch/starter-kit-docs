@@ -16,8 +16,12 @@ SMTP_PORT=587
 
 # none|ssl|tls
 SMTP_SECURE=tls
+# 0=off, 1=client commands, 2=+server responses, 3=+connection status, 4=low-level/all
 SMTP_DEBUG=0
 ```
+
+`SMTP_DEBUG` output goes to PHP's `error_log()`, which lands in the `php` container's logs — check
+it with `make log php`.
 
 `.env.secret`:
 ```bash

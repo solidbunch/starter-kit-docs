@@ -112,7 +112,7 @@ StarterKit uses `solidbunch/wordpress-core-no-content` as the WordPress core sou
 
 ```json
 "require": {
-  "solidbunch/wordpress-core-no-content": "^7.0"
+  "solidbunch/wordpress-core-no-content": "^7.0.2"
 }
 ```
 

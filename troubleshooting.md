@@ -125,7 +125,7 @@ If issues persist, you can wipe everything and start clean:
 make docker clean
 ```
 
-It will remove all Docker containers, images, and volumes associated with this project - **excluding the database volume**, which is preserved to avoid data loss.
+⚠️ This runs Docker's own `prune` commands with no project filter — it removes stopped containers, unused images, and unused (Docker-managed) volumes across **your whole machine**, not just this project. The database survives regardless, but not because of project-scoping: `db-data/` is a host bind mount, not a Docker volume, so `docker volume prune` never touches it — same reason it never touches any other bind-mounted directory in this stack. If you run other Docker projects on this machine, be aware this can affect them too.
 
 Then re-run the installation:
 
@@ -170,8 +170,9 @@ Delete the empty `web/wp-core/wp-content` directory:
 rm -r web/wp-core/wp-content
 ```
 
-> ⚠️ Make sure the directory is empty before deleting.
-> The command will fail if it's not empty — this is intentional.
+> ⚠️ `rm -r` deletes recursively and will **not** fail or warn if the directory still has files in
+> it — double-check `web/wp-core/wp-content` only holds what Composer put there before running
+> this, since anything else in it is gone without confirmation.
 
 
 Run Composer again:

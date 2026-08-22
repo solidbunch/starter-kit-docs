@@ -36,7 +36,7 @@ relevant to what you're editing:
 | `ci.md`              | editing `.github/workflows/**` — deploy and provisioning pipelines             |
 | `gitlab-ci.md`       | editing `.gitlab-ci.yml`, `.gitlab/ci/**` — the GitLab counterpart to `ci.md`'s GitHub Actions |
 | `config.md`          | editing `config/**` — env files, nginx templates, PHP ini, cron, certbot, SSL   |
-| `design-verification.md` | editing theme/addon blocks, templates, parts, patterns, `assets/src/styles/**`, or any `*.scss` file |
+| `design-verification.md` | editing theme blocks, templates, parts, patterns, `assets/src/styles/**`, or any `*.scss` file |
 
 This is what makes ongoing work (§4) different from asking a generic AI assistant for help: Claude
 already knows the hard rules, the folder layout, and the reasoning behind them before you type
@@ -92,13 +92,16 @@ replacing the manual steps in [Installation](installation.md):
    - Ask you (once, batched) for the project slug (`APP_NAME`), title (`APP_TITLE`), and local
      domain (`APP_DOMAIN`) — plus optional dev/stage/prod domains if you already have them.
    - Ask whether to keep the default theme name or rename it (cosmetic rename only — internal PHP
-     namespace/prefixes stay unless you explicitly ask to change those too).
+     namespace/prefixes stay unless you explicitly ask to change those too), and whether to keep
+     the theme in its own separate VCS repo or bundle it into the root repo as a monorepo.
    - Edit the source env files under `config/environment/` (never the generated `.env`/`.env.runtime`).
    - Run `make secret` and `make env local` to regenerate the derived env files, and show you the
      result to confirm before continuing.
    - Confirm with you, then run `make install` (builds and starts Docker containers — this is the
      one step in the flow that touches your machine's Docker daemon).
    - Rename the theme, if you asked for that, using the theme's own `wp clone-theme` WP-CLI command.
+   - Write the project's own `README.md` (local install steps + a full CI/CD setup section for
+     GitHub Actions/GitLab CI), replacing the template's own marketing README.
    - Refresh `CLAUDE.md` / `.claude/rules/` for the renamed project, if a `project-brief`-style skill
      is available.
    - Report every changed file, split into what it did automatically vs. what's left for you
