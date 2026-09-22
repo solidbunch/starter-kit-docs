@@ -146,6 +146,9 @@ If you also have paid `kit-modules` licenses, add an `http-basic` entry for
 {\"github-oauth\":{\"github.com\":\"ACCESS_TOKEN_GITHUB\"},\"http-basic\":{\"licensing.starter-kit.io\":{\"username\":\"<your email>\",\"password\":\"<your license password>\"}}}
 ```
 
+Dependabot needs its own, separate copy of these licensing credentials — it can't read the
+`COMPOSER_AUTH` secret above. See the "Dependabot" section near the end of this page.
+
 ### Step 2 — add the required variables
 
 Go to **Settings → Secrets and variables → Actions → Variables** (repo-level):
@@ -309,6 +312,47 @@ one by hand only if you want either of these:
 
 > Environments with their own secrets/variables work on a public repo on any GitHub plan. On a
 > **private** repo you need GitHub Pro, Team, or Enterprise.
+
+### Dependabot
+
+`.github/dependabot.yml` ships with two update sources, both opening PRs against `develop`:
+`github-actions` (monthly) and `composer` (weekly, root `composer.json`).
+
+Neither deploy/provision pipeline above runs on `pull_request` — both trigger on push/manual
+dispatch only. There is a separate, lightweight `validate-pr.yml` workflow that does: it runs
+`composer validate` on any PR (against `develop` or `main`) that touches `composer.json` or
+`composer.lock`, catching schema errors and a `composer.json`/`composer.lock` gone out of sync.
+It's deliberately secret-free — no `COMPOSER_AUTH` — so it works the same for a Dependabot PR,
+which can't access ordinary Actions secrets anyway. It only checks internal consistency, not that
+the licensed modules actually resolve, so it passes with or without a license configured. Beyond
+that one check, review the diff yourself before merging any PR — a bad bump still only surfaces
+for real after merging into `develop` triggers the dev deploy.
+
+The composer update source ships pre-wired to reach the licensed modules, plus two explicit
+`ignore:` exclusions for dependencies it can't usefully update:
+
+- **Licensed `kit-modules`** (`solidbunch/basis`, `monitoring-client`, `monitoring-server`,
+  `proxy`) resolve from the private composer repository
+  (`https://licensing.starter-kit.io/wp-json/skl/v1/`, `http-basic` auth — same scheme as
+  `COMPOSER_AUTH`, see [Quick start after purchase](quick-start-after-purchase.md)).
+  `dependabot.yml` already declares a named `registries:` entry of `type: composer-repository`
+  for it, but Dependabot reads its credentials from a **separate secret store** —
+  **Settings → Secrets and variables → Dependabot**, not Actions — so add
+  `DEPENDABOT_LICENSE_USERNAME` (your license email) and `DEPENDABOT_LICENSE_PASSWORD` (your
+  license key) there once you have a paid license.
+  - Without those two secrets, the update job for just those 4 modules fails with an
+    authentication error — visible under **Insights → Dependency graph → Dependabot → Recent
+    update jobs** — and no PR gets opened for them. It fails loudly rather than silently
+    downgrading a resolved package to an unlicensed stub, and doesn't block updates for anything
+    else in `composer.json` (`wpackagist-plugin/*`, `solidbunch/wordpress-core-no-content`, …).
+    Safe to leave unset until you're ready to keep those modules current via Dependabot.
+- `solidbunch/starter-kit-theme` is installed from a direct git (VCS) repository on a branch
+  constraint (`dev-master`), not a tagged version — Dependabot's version-update model doesn't
+  apply to this kind of dependency, so `dependabot.yml` explicitly `ignore:`s it rather than
+  letting it fail every run.
+- `roave/security-advisories` (required as `dev-latest`) is a conflict-only marker package with
+  no real releases of its own — also `ignore:`-d, to avoid noise from a "dependency" that was
+  never meant to be version-bumped.
 
 ---
 
