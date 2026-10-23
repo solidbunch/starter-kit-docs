@@ -314,6 +314,33 @@ df -h                     # Overall disk usage
 
 ## 🛠️ MariaDB Troubleshooting
 
+### `mariadb` container shows `unhealthy` after a MariaDB version bump
+
+**Symptom:** after updating `APP_DATABASE_IMAGE` to a new MariaDB **major** version (e.g. `11.5`
+→ `11.8`) and running `make recreate`, `docker ps` shows the `mariadb` container as `unhealthy`.
+
+**Cause:** the data in `./db-data` was created by the old major version's system tables, which
+need an explicit `mariadb-upgrade` step the official image does not run automatically unless
+`MARIADB_AUTO_UPGRADE=1` is set. This project's `docker-compose.yml` adds a check on top of the
+official image's own healthcheck script specifically to surface this as `unhealthy` instead of
+silently staying `healthy` on stale system tables (the official script alone only detects an
+upgrade *currently in progress*, not one that was skipped and never ran — a known gap in the
+upstream image). If you're on an older checkout without that addition, you'll instead need to
+check the startup log directly:
+
+```bash
+make log mariadb
+```
+
+and look for this exact line:
+
+```
+MariaDB upgrade (mariadb-upgrade or creating healthcheck users) required, but skipped due to $MARIADB_AUTO_UPGRADE setting
+```
+
+**Solution:** see [Database management — Upgrading MariaDB major version](database-management.md#upgrading-mariadb-major-version)
+for the automatic (`MARIADB_AUTO_UPGRADE=1`) and manual procedures.
+
 ### Crash recovery failed: Bad magic header in tc log
 
 **Error:**

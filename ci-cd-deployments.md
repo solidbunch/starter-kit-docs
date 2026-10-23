@@ -354,6 +354,16 @@ The composer update source ships pre-wired to reach the licensed modules, plus t
   no real releases of its own — also `ignore:`-d, to avoid noise from a "dependency" that was
   never meant to be version-bumped.
 
+**Watch for Docker image major-version bumps specifically.** Dependabot doesn't track
+`config/environment/.env.main`'s `APP_*_IMAGE` tags (those are bumped manually), but any PR that
+touches them deserves a closer look at the diff: a **major**-version jump on `APP_DATABASE_IMAGE`
+(e.g. MariaDB `11.5` → `11.8`) needs a manual `mariadb-upgrade` step on every environment with
+existing data before/after you deploy it — it does not happen automatically. `docker ps` showing
+the `mariadb` container as `unhealthy` after the deploy is the signal that step is still needed.
+See
+[Database management — Upgrading MariaDB major version](database-management.md#upgrading-mariadb-major-version)
+before merging/deploying a PR like that.
+
 ---
 
 ## GitLab CI/CD
