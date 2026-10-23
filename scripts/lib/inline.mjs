@@ -68,7 +68,7 @@ export function rewriteLink(href, manifestBySlug, context = {}) {
  *   rule emits `<br>\n`, but every live page has `<br>` directly followed by the next text on the
  *   same line (verified against the `overview`, `usage`, `infrastructure` and `composer-usage`
  *   pages' live doc-page post_content on starter-kit.loc, captured 2026-08-10 — the live site and
- *   the skt/v1/serialize-blocks endpoint are the authority), so the default's trailing newline
+ *   the ska/v1/serialize-blocks endpoint are the authority), so the default's trailing newline
  *   would be a byte-level mismatch.
  * - `link_open` overridden to rewrite relative `*.md` links via {@link rewriteLink}.
  *

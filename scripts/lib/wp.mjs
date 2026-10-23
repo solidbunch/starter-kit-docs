@@ -2,15 +2,16 @@ import { getMapEntry, setMapEntry } from './map.mjs';
 
 /**
  * REST namespace the `doc-page` CPT is registered under (`starter-kit-addon`'s `DocPage`
- * post type registration, `rest_namespace => SK_REST_API_NS`, `skt/v1`) — the theme's own
- * already-whitelisted namespace, not core's `wp/v2`. See the module docblock below.
+ * post type registration, `rest_namespace => SKA_REST_API_NS`, `ska/v1`) — the addon's own
+ * namespace, not core's `wp/v2`. See the module docblock below.
  */
-const DOC_PAGE_NAMESPACE = 'skt/v1';
+const DOC_PAGE_NAMESPACE = 'ska/v1';
 
 /**
  * REST client + publishing logic (Tasks 3.2-3.4).
  *
- * Target: `/skt/v1/doc-page`, NOT `/wp/v2/pages` and no longer `/wp/v2/doc-page` either.
+ * Target: `/ska/v1/doc-page`, NOT `/wp/v2/pages` and no longer `/wp/v2/doc-page` or
+ * `/skt/v1/doc-page` either.
  *
  * `starter-kit.loc` already publishes these docs as a custom post type, `doc-page` (registered
  * by the `starter-kit-addon` plugin; rewrite slug `docs`; hierarchical; `has_archive: false`).
@@ -21,12 +22,13 @@ const DOC_PAGE_NAMESPACE = 'skt/v1';
  * day)" section for the full investigation.
  *
  * The namespace moved from `wp/v2` to `skt/v1` (`starter-kit-addon`'s `docs-publisher-role`
- * plan) because the theme's REST API whitelist (`RestApiFilter.php`) only ever admits its own
- * namespace, `skt/v1` — `/wp/v2/doc-page` can never be whitelisted itself. Registering `doc-page`
- * under `skt/v1` instead means the CI publishing identity (`docs-publisher` role) no longer needs
- * the core `edit_pages` capability (which would also grant it every other `wp/v2` route, including
- * `/wp/v2/pages` and `/wp/v2/users`) just to pass the whitelist. See that plan for the full
- * capability design.
+ * plan) and later from `skt/v1` to the addon's own `ska/v1` (`SKA_REST_API_NS`), so the addon no
+ * longer depends on the theme's `SK_REST_API_NS` constant; the theme's REST API whitelist is
+ * extended through the `{SK_HOOKS_PREFIX}/rest_api_namespace_whitelist` filter instead.
+ * `/wp/v2/doc-page` could never be whitelisted itself. Registering `doc-page` outside `wp/v2`
+ * means the CI publishing identity (`docs-publisher` role) no longer needs the core `edit_pages`
+ * capability (which would also grant it every other `wp/v2` route, including `/wp/v2/pages` and
+ * `/wp/v2/users`) just to pass the whitelist. See that plan for the full capability design.
  *
  * No synthetic "docs" parent page/post is resolved or created here. `doc-page`'s rewrite slug
  * (`docs`) is baked into the post type registration itself — confirmed via
@@ -81,7 +83,7 @@ export function createWpClient({ baseUrl, user, appPassword }) {
 
   /**
    * Namespace-agnostic request: `pathUnderWpJson` is everything after `/wp-json/`, so it can
-   * target any REST namespace (`wp/v2/...`, `skt/v1/...`), not just the `doc-page` publishing
+   * target any REST namespace (`wp/v2/...`, `ska/v1/...`), not just the `doc-page` publishing
    * routes. `request()` below is a thin `DOC_PAGE_NAMESPACE`-prefixing wrapper over this for the
    * existing `doc-page` call sites, which keeps their behaviour and URLs identical.
    */

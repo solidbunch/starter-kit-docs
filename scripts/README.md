@@ -3,8 +3,8 @@
 Converts every `.md` file listed in `../index.md` into `starter-kit/*`/`core/*`
 block **node trees** (`{blockName, attrs, innerBlocks, innerHTML}`), serializes each file's tree
 into Gutenberg block markup by POSTing it to the target site's own REST endpoint
-(`POST /wp-json/skt/v1/serialize-blocks`, `starter-kit-addon`'s `BlockTreeSerializer`), and
-publishes the resulting markup to the `doc-page` custom post type (REST base `/wp-json/skt/v1/doc-page`).
+(`POST /wp-json/ska/v1/serialize-blocks`, `starter-kit-addon`'s `BlockTreeSerializer`), and
+publishes the resulting markup to the `doc-page` custom post type (REST base `/wp-json/ska/v1/doc-page`).
 The target site is whatever `WP_BASE_URL` is set to — the production site (`https://starter-kit.io`)
 when run from CI, or a local dev install (e.g. `http://starter-kit.loc`) when run by hand. Runs
 both by hand from this machine and from CI on every push to `main`
@@ -13,14 +13,14 @@ both by hand from this machine and from CI on every push to `main`
 **The sync script no longer decides block markup's byte shape.** `lib/blocks.mjs` and
 `lib/convert.mjs` only build the node tree — delimiters, `core/` namespace stripping, `attrs`
 JSON encoding, the `"\n\n"` sibling glue, and `wp_kses_post()` are all applied server-side by the
-`skt/v1/serialize-blocks` endpoint. This means **the target site (`WP_BASE_URL`) must be reachable
+`ska/v1/serialize-blocks` endpoint. This means **the target site (`WP_BASE_URL`) must be reachable
 for every run, including `--dry-run`** — markup generation itself is now a live network call, not
 just the live-content diff.
 
-## Target: `/skt/v1/doc-page`, not `/wp/v2/pages`
+## Target: `/ska/v1/doc-page`, not `/wp/v2/pages`
 
 The site already publishes these docs as a custom post type, `doc-page` (hierarchical, registered
-under the `skt/v1` REST namespace — REST base `/wp-json/skt/v1/doc-page` — rewrite slug `docs`
+under the `ska/v1` REST namespace — REST base `/wp-json/ska/v1/doc-page` — rewrite slug `docs`
 baked into the post type's own registration — confirmed via
 `wp eval 'print_r(get_post_type_object("doc-page"));'`). Publishing to `/wp/v2/pages` instead
 would create a second, colliding set of posts at the same `/docs/<slug>/` URLs. There is **no
@@ -34,11 +34,14 @@ disturbs that existing hierarchy.
 The post type used to be registered under core's `wp/v2` namespace, and this script used to target
 `/wp/v2/doc-page` — moved to `skt/v1` by `starter-kit-addon`'s `docs-publisher-role` plan, so the
 CI publishing identity no longer needs the core `edit_pages` capability just to pass the theme's
-REST API whitelist (which only ever admits its own `skt/v1` namespace). **Deploy-ordering note:**
-if this docs repo's Stage 2 (this file and `lib/wp.mjs`) ships before `starter-kit-addon` registers
-`doc-page` under `skt/v1`, every request here 404s against `/wp-json/skt/v1/doc-page` until the
-addon deploy lands — self-healing, not destructive, since no write ever partially succeeds; it
-simply starts working again on the next run once both sides are deployed.
+REST API whitelist — and later to the addon's own `ska/v1` namespace (`SKA_REST_API_NS`), so the
+addon no longer depends on the theme's `SK_REST_API_NS` constant; the theme's whitelist is extended
+through the `{SK_HOOKS_PREFIX}/rest_api_namespace_whitelist` filter. **Deploy-ordering note:**
+this script and `starter-kit-addon` must agree on the namespace. If the addon on the target site
+still registers `doc-page` / `serialize-blocks` under `skt/v1` (older addon), or this script still
+targets `skt/v1` while the addon is already on `ska/v1`, every request here 404s with
+`rest_no_route` against `/wp-json/ska/v1/...` — self-healing, not destructive, since no write ever
+partially succeeds; it simply starts working again on the next run once both sides match.
 
 Slugs always follow the manifest-derived value (from the filename itself — `file.slice(0, -3)`,
 in `lib/manifest.mjs`), not any previously-live slug and not any title — there is no indexing/SEO
@@ -72,7 +75,7 @@ never the other way round.
    any other core Page capability, so it cannot touch core WP Pages at all, and explicitly not
    `unfiltered_html`, `manage_options`, `edit_theme_options`, or plugin/user management. The only
    manual steps left are: assign the role to a dedicated user (Users → Add New, or edit an
-   existing user's role). `edit_doc_pages` is also what the `skt/v1/serialize-blocks` endpoint
+   existing user's role). `edit_doc_pages` is also what the `ska/v1/serialize-blocks` endpoint
    itself requires, so this one role covers both the serialization call and the `doc-page`
    publishing calls — no separate permission to grant.
 2. For that user: Users → Profile → Application Passwords → generate one.
@@ -95,7 +98,7 @@ never the other way round.
 ## Running
 
 ```bash
-# Dry run: serializes each file's node tree via the live skt/v1/serialize-blocks endpoint,
+# Dry run: serializes each file's node tree via the live ska/v1/serialize-blocks endpoint,
 # writes the resulting markup to .sync-output/<slug>.html, and prints a diff against the live
 # page's content.raw (?context=edit). NEVER calls a write endpoint.
 npm run sync:dry
@@ -112,7 +115,7 @@ npm run sync
 node sync-docs.mjs --dry-run --strict
 ```
 
-Every file's node tree is first POSTed to `skt/v1/serialize-blocks` to obtain its markup, then
+Every file's node tree is first POSTed to `ska/v1/serialize-blocks` to obtain its markup, then
 processed independently by the rest of the pipeline. If that POST fails for one file (e.g. a
 malformed node tree — a 400 names the offending block by path in the response), that file alone
 is reported as `✗ failed: <slug>: <error>` and skipped entirely (never published with empty or
@@ -147,7 +150,7 @@ tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
 a dedicated test: it serializes every file in `index.md` through the live
-`skt/v1/serialize-blocks` endpoint and diffs the result against that page's current live
+`ska/v1/serialize-blocks` endpoint and diffs the result against that page's current live
 `content.raw`, for all 19 pages, every time it's run — see "Running" above.
 
 ## What `docs-sync-map.json` is, and why it's committed
@@ -155,7 +158,7 @@ a dedicated test: it serializes every file in `index.md` through the live
 A path → WordPress `doc-page` post ID map (`{"usage.md": {"id": 50, "slug": "usage"}}`), used
 instead of custom post meta: it needs zero server-side PHP changes in `starter-kit-foundation`, at
 the cost of being a cache rather than the sole source of truth — before creating a post, the
-script probes `GET /wp-json/skt/v1/doc-page?slug=<slug>` and adopts a match instead of creating a
+script probes `GET /wp-json/ska/v1/doc-page?slug=<slug>` and adopts a match instead of creating a
 duplicate, so a lost/corrupt map self-heals (slower, one extra request per page, but correct). It
 ships pre-seeded with the real `doc-page` IDs for every file currently in `index.md` (fetched via
 `wp post list --post_type=doc-page --fields=ID,post_name`); a newly added doc file has no entry
@@ -236,8 +239,8 @@ Whatever site `WP_BASE_URL` points at must already have, independent of this wor
   user assigned that role, with an Application Password generated for it (see "Prerequisites"
   above — the only manual, one-time wp-admin setup, performed once per target site: production
   `https://starter-kit.io` and development `https://develop.starter-kit.io`).
-- The `skt/v1/serialize-blocks` endpoint (`starter-kit-addon`) present and reachable.
-- The `doc-page` custom post type registered, REST base `/wp-json/skt/v1/doc-page`.
+- The `ska/v1/serialize-blocks` endpoint (`starter-kit-addon`) present and reachable.
+- The `doc-page` custom post type registered, REST base `/wp-json/ska/v1/doc-page`.
 
 ### If the target isn't reachable from a GitHub-hosted runner
 
@@ -269,7 +272,7 @@ Sync direction is **git → WordPress only**. A synced page can technically be o
 Gutenberg (these are real native blocks, not a classic-HTML blob) — but the next sync run always
 overwrites `title` (from the file's own first `# Heading`), `content`, `slug` (from the filename),
 and `menu_order` (from `index.md`'s position) with what's generated from this repo (`parent`
-is never touched — see "Target: `/skt/v1/doc-page`" above). Any edit made directly in wp-admin is
+is never touched — see "Target: `/ska/v1/doc-page`" above). Any edit made directly in wp-admin is
 silently lost on the next run. If you need to change a doc page's title or content, edit the `.md`
 file in this repo, not the page in wp-admin.
 

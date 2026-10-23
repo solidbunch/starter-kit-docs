@@ -67,8 +67,8 @@ To make the automatic pipeline work, in the GitHub repo set:
      reactivate it once on that site with
      `wp plugin deactivate starter-kit-addon && wp plugin activate starter-kit-addon`
      (`wp plugin activate` alone is a no-op on an already-active plugin)
-   - the `skt/v1/serialize-blocks` REST endpoint present (`starter-kit-addon`) and the `doc-page`
-     custom post type registered under the `skt/v1` REST namespace
+   - the `ska/v1/serialize-blocks` REST endpoint present (`starter-kit-addon`) and the `doc-page`
+     custom post type registered under the `ska/v1` REST namespace
 
 4. (Recommended for `production`) **Settings → Environments → production → Deployment
    protection rules** — require a reviewer before a `main` push actually publishes live, same

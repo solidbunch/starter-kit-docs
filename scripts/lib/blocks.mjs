@@ -2,7 +2,7 @@
  * One pure emitter function per block shape used by this converter.
  *
  * Each emitter returns a `{blockName, attrs, innerBlocks, innerHTML}` node object — the JSON
- * shape consumed by the `POST /wp-json/skt/v1/serialize-blocks` endpoint
+ * shape consumed by the `POST /wp-json/ska/v1/serialize-blocks` endpoint
  * (`starter-kit-foundation.loc`, commit `1ec22ae`), which owns the outer serialization
  * mechanics: block-comment delimiters, namespace stripping, attrs JSON encoding, the `"\n\n"`
  * sibling glue, and `wp_kses_post()`. It does NOT own the contents of `innerHTML`, and it does
@@ -29,7 +29,7 @@
  * IMPORTANT — sourcing, corrected 2026-08-10 (later same day): `paragraph`, `listSection`/
  * `listItem`, and `quote` below were verified against the real, verbatim `post_content` of the
  * 17 already-published `doc-page` posts on `starter-kit.loc`, captured 2026-08-10 from the live
- * doc-page `post_content` on `starter-kit.loc` — the live site and the `skt/v1/serialize-blocks`
+ * doc-page `post_content` on `starter-kit.loc` — the live site and the `ska/v1/serialize-blocks`
  * endpoint are the authority — NOT from an earlier synthetic capture taken during Task 1.1 (no
  * longer committed). The synthetic capture assumed `starter-kit/paragraph` and
  * `starter-kit/list-section`/`list-item` were the live convention; they are not (0 occurrences
@@ -41,7 +41,7 @@
  * markup carries a `has-fixed-layout` class on `<table>` not present in the synthetic capture.
  *
  * Key rules, captured 2026-08-10 from the live doc-page `post_content` on `starter-kit.loc` — the
- * live site and the `skt/v1/serialize-blocks` endpoint are the authority (e.g. the `installation`
+ * live site and the `ska/v1/serialize-blocks` endpoint are the authority (e.g. the `installation`
  * and `usage` pages, which between them exercise all 7 mapped block types):
  * - A block comment's JSON attributes object omits any attribute equal to its block.json
  *   `default` (WordPress's own serializer behavior — `getCommentAttributes()`). `level:2`,
@@ -91,7 +91,7 @@ export function heading(level, contentHtml) {
   }
   // No class attribute: confirmed against all 102 heading instances across the live doc-page
   // post_content on starter-kit.loc, captured 2026-08-10 — the live site and the
-  // skt/v1/serialize-blocks endpoint are the authority — real markup wins over the earlier
+  // ska/v1/serialize-blocks endpoint are the authority — real markup wins over the earlier
   // synthetic capture, same principle applied to paragraph/list/quote/code/table.
   return {
     blockName: 'starter-kit/heading',
@@ -204,7 +204,7 @@ export function code(language, escapedContent) {
  * `<blockquote class="wp-block-quote">` — NOT raw `<p>` tags with no block comments (the
  * earlier synthetic capture's assumption). Confirmed against the `installation` and `usage`
  * pages' live doc-page post_content on starter-kit.loc, captured 2026-08-10 (single- and
- * two-paragraph examples) — the live site and the skt/v1/serialize-blocks endpoint are the
+ * two-paragraph examples) — the live site and the ska/v1/serialize-blocks endpoint are the
  * authority.
  *
  * @param {string[]} paragraphsHtml
@@ -229,7 +229,7 @@ export function quote(paragraphsHtml) {
  * (rendered as `<td>`). The `<table>` carries class `has-fixed-layout` — present on all 6 live
  * table instances (the `usage`, `makefile-reference`, `advanced-installation-options` and
  * `platform-notes` pages' live doc-page post_content on starter-kit.loc, captured 2026-08-10 —
- * the live site and the skt/v1/serialize-blocks endpoint are the authority); the earlier
+ * the live site and the ska/v1/serialize-blocks endpoint are the authority); the earlier
  * synthetic capture omitted it, real markup wins. Unchanged from before the node-shape
  * migration — the table's own markup carries no InnerBlocks, so it stays a single flat
  * `<figure>`/`<table>` string inside `innerHTML`.
@@ -280,7 +280,7 @@ export function separator() {
  * overview.md only"). Byte shape verified against the `overview` page's live doc-page
  * post_content on starter-kit.loc, captured 2026-08-10 — `properties`/`spacers`/`size` JSON
  * values and the `justify-content-center mt-3 mb-3` row classes are the real captured values,
- * not invented — the live site and the skt/v1/serialize-blocks endpoint are the authority. This
+ * not invented — the live site and the ska/v1/serialize-blocks endpoint are the authority. This
  * is a special-cased marker, not a general embed system — if a second video ever gets added,
  * extend `convert.mjs`'s handling then, don't generalize speculatively now.
  *

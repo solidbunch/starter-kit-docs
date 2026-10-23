@@ -1,7 +1,7 @@
 /**
- * Client for the WordPress-side `POST /wp-json/skt/v1/serialize-blocks` endpoint
- * (implemented by `starter-kit-addon`'s `BlockTreeSerializer`, but registered under the theme's
- * own REST namespace `skt/v1` rather than the addon's `ska/v1`).
+ * Client for the WordPress-side `POST /wp-json/ska/v1/serialize-blocks` endpoint
+ * (implemented by `starter-kit-addon`'s `BlockTreeSerializer`, registered under the addon's own
+ * REST namespace `ska/v1`).
  *
  * The endpoint owns **all** outer serialization mechanics: block-comment delimiters, core
  * namespace stripping, `attrs` JSON encoding, `wp_kses_post()`, and — critically — the `"\n\n"`
@@ -19,14 +19,14 @@
  * @returns {Promise<string>} The serialized markup (`response.markup`).
  */
 export async function serializeBlocks(client, blocks) {
-  const response = await client.requestPath('skt/v1/serialize-blocks', {
+  const response = await client.requestPath('ska/v1/serialize-blocks', {
     method: 'POST',
     body: { blocks },
   });
 
   if (!response || typeof response.markup !== 'string') {
     throw new Error(
-      'serialize: skt/v1/serialize-blocks returned no "markup" string in its response'
+      'serialize: ska/v1/serialize-blocks returned no "markup" string in its response'
     );
   }
 
