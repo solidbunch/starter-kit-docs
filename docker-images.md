@@ -11,10 +11,13 @@ make docker build
 make docker push
 ```
 
-The `mariadb` image wraps the official entrypoint with a version guard that refuses to start the
-server when the image's MariaDB version differs from the one that last upgraded the data
-directory. Because the guard lives in the image, a host only gets it once an image that contains
-it is published under a **new tag** and `APP_DATABASE_IMAGE` points to it — never overwrite a tag
-that hosts have already pulled, since `docker compose up` does not re-pull a tag that exists
-locally. See [Upgrading MariaDB major version](database-management.md#upgrading-mariadb-major-version)
-for the upgrade procedure.
+The `mariadb` image has a version guard (it refuses to start on data from another MariaDB version).
+A host gets it only from an image published under a **new tag** that `APP_DATABASE_IMAGE` points
+to — `docker compose up` does not re-pull a tag that already exists on the host. Check:
+
+```bash
+docker inspect --format '{{json .Config.Entrypoint}}' $(docker compose ps -q mariadb)
+```
+
+`["/docker-entrypoint.sh"]` means the guard is present, `["docker-entrypoint.sh"]` means the
+official entrypoint only. Upgrade steps: [Upgrading MariaDB version](database-management.md#upgrading-mariadb-version).

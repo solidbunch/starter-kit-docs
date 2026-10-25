@@ -314,21 +314,16 @@ df -h                     # Overall disk usage
 
 ## 🛠️ MariaDB Troubleshooting
 
-### `mariadb` container keeps restarting with `[version-guard] ERROR` after a MariaDB version change
+### `mariadb` keeps restarting with `[version-guard] ERROR`
 
-**Symptom:** after changing `APP_DATABASE_IMAGE` to a different MariaDB version (major, minor
-or even patch) and running `make recreate`, the `mariadb` container does not become healthy:
-`docker ps` shows `Restarting`, `php`/`nginx`/`cron` stay un-started, and the site is down.
-`docker compose` itself only reports `dependency failed to start: container ... is unhealthy` —
-the reason is in the log (below).
+**Symptom:** after changing `APP_DATABASE_IMAGE`, `make recreate` fails with `dependency failed to
+start: container ... is unhealthy`, `docker ps` shows `mariadb` as `Restarting`, the site is down.
 
-**Cause:** the data in `./db-data` was last upgraded by another MariaDB version. The `mariadb`
-image's version guard compares the image's version with `./db-data/mariadb_upgrade_info` and
-refuses to start the server on a mismatch, instead of silently running the new version on old data
-(which is what the official image does on its own). The reason is in the container log:
+**Cause:** the version guard — the data in `./db-data` was last upgraded by another MariaDB
+version. The reason is in the log:
 
 ```bash
-make log mariadb
+docker compose logs --tail 30 mariadb
 ```
 
 ```
@@ -337,15 +332,11 @@ make log mariadb
 [version-guard]   data directory:   <version recorded in db-data>
 ```
 
-**Solution:** this is intentional — upgrade deliberately: back up `./db-data`, start once with
-`MARIADB_AUTO_UPGRADE=1`, then switch it off. See [Database management — Upgrading MariaDB major
-version](database-management.md#upgrading-mariadb-major-version) for the exact steps. To go back to
-the old version instead, set `APP_DATABASE_IMAGE` back to the old tag — only possible if the new
-server has not opened the data yet, otherwise restore your copy of `./db-data`.
+**Solution:** upgrade on purpose — [Database management — Upgrading MariaDB version](database-management.md#upgrading-mariadb-version).
+To undo the change instead, set `APP_DATABASE_IMAGE` back.
 
-If you expected the guard but see none of this (the `mariadb` container is healthy and its log has
-no `10-version-guard.sh` line), the host is still running an older image — see "Check that the host
-really runs the guard image" in the same section.
+No `[version-guard]` lines and a healthy `mariadb` after a version change means the host still runs
+an older image — see [Docker Images](docker-images.md).
 
 ### Crash recovery failed: Bad magic header in tc log
 

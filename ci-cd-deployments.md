@@ -354,17 +354,11 @@ The composer update source ships pre-wired to reach the licensed modules, plus t
   no real releases of its own — also `ignore:`-d, to avoid noise from a "dependency" that was
   never meant to be version-bumped.
 
-**Watch for Docker image version bumps specifically.** Dependabot doesn't track
-`config/environment/.env.main`'s `APP_*_IMAGE` tags (those are bumped manually), but any PR that
-touches them deserves a closer look at the diff: a version change on `APP_DATABASE_IMAGE`
-(MariaDB major, minor or patch) needs a deliberate `mariadb-upgrade` step on every environment with
-existing data — it does not happen automatically. The `mariadb` image's version guard stops the
-server instead of running the new version on old data, so the deploy fails at `make recreate`
-(compose itself only says `dependency failed to start: container ... is unhealthy`; the job output
-then ends with the container status and last log lines, including the `[version-guard] ERROR`
-block) until the upgrade is done. Back up `db-data` first. See
-[Database management — Upgrading MariaDB major version](database-management.md#upgrading-mariadb-major-version)
-before merging/deploying a PR like that.
+**Watch for Docker image version bumps.** Dependabot doesn't track the `APP_*_IMAGE` tags in
+`config/environment/.env.main` (they are bumped manually), but a PR that touches them deserves a
+closer look: changing `APP_DATABASE_IMAGE` stops the deploy at `make recreate` until the database
+is upgraded on purpose — see
+[Database management — Upgrading MariaDB version](database-management.md#upgrading-mariadb-version).
 
 ---
 
