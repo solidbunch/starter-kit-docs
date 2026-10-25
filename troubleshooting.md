@@ -314,32 +314,38 @@ df -h                     # Overall disk usage
 
 ## 🛠️ MariaDB Troubleshooting
 
-### `mariadb` container shows `unhealthy` after a MariaDB version bump
+### `mariadb` container keeps restarting with `[version-guard] ERROR` after a MariaDB version change
 
-**Symptom:** after updating `APP_DATABASE_IMAGE` to a new MariaDB **major** version (e.g. `11.5`
-→ `11.8`) and running `make recreate`, `docker ps` shows the `mariadb` container as `unhealthy`.
+**Symptom:** after changing `APP_DATABASE_IMAGE` to a different MariaDB version (major, minor
+or even patch) and running `make recreate`, the `mariadb` container does not become healthy:
+`docker ps` shows `Restarting`, `php`/`nginx`/`cron` stay un-started, and the site is down.
+`docker compose` itself only reports `dependency failed to start: container ... is unhealthy` —
+the reason is in the log (below).
 
-**Cause:** the data in `./db-data` was created by the old major version's system tables, which
-need an explicit `mariadb-upgrade` step the official image does not run automatically unless
-`MARIADB_AUTO_UPGRADE=1` is set. This project's `docker-compose.yml` adds a check on top of the
-official image's own healthcheck script specifically to surface this as `unhealthy` instead of
-silently staying `healthy` on stale system tables (the official script alone only detects an
-upgrade *currently in progress*, not one that was skipped and never ran — a known gap in the
-upstream image). If you're on an older checkout without that addition, you'll instead need to
-check the startup log directly:
+**Cause:** the data in `./db-data` was last upgraded by another MariaDB version. The `mariadb`
+image's version guard compares the image's version with `./db-data/mariadb_upgrade_info` and
+refuses to start the server on a mismatch, instead of silently running the new version on old data
+(which is what the official image does on its own). The reason is in the container log:
 
 ```bash
 make log mariadb
 ```
 
-and look for this exact line:
-
 ```
-MariaDB upgrade (mariadb-upgrade or creating healthcheck users) required, but skipped due to $MARIADB_AUTO_UPGRADE setting
+[version-guard] ERROR: MariaDB server NOT started.
+[version-guard]   image version:    <version of the image>
+[version-guard]   data directory:   <version recorded in db-data>
 ```
 
-**Solution:** see [Database management — Upgrading MariaDB major version](database-management.md#upgrading-mariadb-major-version)
-for the automatic (`MARIADB_AUTO_UPGRADE=1`) and manual procedures.
+**Solution:** this is intentional — upgrade deliberately: back up `./db-data`, start once with
+`MARIADB_AUTO_UPGRADE=1`, then switch it off. See [Database management — Upgrading MariaDB major
+version](database-management.md#upgrading-mariadb-major-version) for the exact steps. To go back to
+the old version instead, set `APP_DATABASE_IMAGE` back to the old tag — only possible if the new
+server has not opened the data yet, otherwise restore your copy of `./db-data`.
+
+If you expected the guard but see none of this (the `mariadb` container is healthy and its log has
+no `10-version-guard.sh` line), the host is still running an older image — see "Check that the host
+really runs the guard image" in the same section.
 
 ### Crash recovery failed: Bad magic header in tc log
 

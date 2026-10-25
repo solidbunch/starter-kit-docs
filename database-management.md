@@ -2,69 +2,97 @@
 
 ### Upgrading MariaDB major version
 
-`APP_DATABASE_IMAGE` in `config/environment/.env.main` is pinned to a specific MariaDB tag (for
-example `11.8.9-noble`). Updating this tag to a **new major version** (e.g. `11.5` → `11.8`) is
-not automatic for an environment with existing data — the official MariaDB image does not run
-its internal `mariadb-upgrade` step on an existing data volume unless told to.
+`APP_DATABASE_IMAGE` in `config/environment/.env.main` is pinned to a specific MariaDB tag.
+Changing it to a **different version** (major, minor or even patch) is never applied silently to
+an environment with existing data: the `mariadb` image ships a **version guard** that refuses to
+start the server when the image's version differs from the version `mariadb-upgrade` last recorded
+in `./db-data/mariadb_upgrade_info`. The official image on its own only logs "upgrade required,
+but skipped" and then starts the new version on the old data.
 
-**How you'll notice an upgrade is needed — just check `docker ps`.** The official image's own
-healthcheck only detects an upgrade *currently in progress*, not one that was skipped and never
-ran — on its own, `docker ps` can show the `mariadb` container as `healthy` even while it's
-quietly running on stale, pre-upgrade system tables. This is a known gap in the upstream image
-itself, not specific to this project — see the `mariadb` service's `healthcheck:` block in
-`docker-compose.yml` for the extra check this project adds on top of the official script
-specifically to close that gap: it compares the running server's version against the version
-`mariadb-upgrade` last recorded, and fails the healthcheck on a mismatch.
+The comparison is the full `x.y.z`, so even a patch bump stops the server. A fresh, empty
+`./db-data` is never blocked.
 
-So after crossing a MariaDB major version, just look at the container status:
-
-```bash
-docker ps
-```
-
-If `mariadb` shows **`unhealthy`** instead of `healthy`, an upgrade is needed — don't treat the
-deploy as done. For the full picture (or on an older checkout without this healthcheck addition),
-you can still check the startup log directly:
+**How you'll notice it.** `mariadb` never becomes healthy: it exits and restarts in a loop
+(`docker ps` shows `Restarting`), and `php`, `nginx` and `cron` stay un-started because they wait
+for it. The reason is in the container log:
 
 ```bash
 make log mariadb
 ```
 
-Look for this exact line:
-
 ```
-MariaDB upgrade (mariadb-upgrade or creating healthcheck users) required, but skipped due to $MARIADB_AUTO_UPGRADE setting
+[version-guard] ERROR: MariaDB server NOT started.
+[version-guard]   image version:    <version of the image>
+[version-guard]   data directory:   <version recorded in db-data>   # the real log prints x.y.z here
+[version-guard] The data was written by another version. Back up db-data, then start once
+[version-guard] with MARIADB_AUTO_UPGRADE=1, or switch the image back to the old version.
 ```
 
-**Option 1 — automatic (recommended for a single standalone instance, which is this project's
-default topology):**
+When `make recreate` fails in a CI deploy, the job output ends with the container status and the
+last log lines of every service, so the same block shows up there.
 
-1. In `.env.secret`, uncomment and set:
-   ```
-   MARIADB_AUTO_UPGRADE=1
-   ```
-2. `make recreate <env>` — the container runs `mariadb-upgrade` itself on start (with its own
-   pre-upgrade backup of the system `mysql` database, written into the data directory).
-3. Once it's confirmed healthy (`make log mariadb` shows normal startup, `docker ps` shows
-   `healthy`), comment `MARIADB_AUTO_UPGRADE` back out — it should not stay on for routine
-   restarts.
+**Step 1 — back up.** The guard has stopped the container, so `make export` is not available (it
+needs a running database). The copy needs as much free space as the data directory itself, so
+check that first, then stop the container and copy it:
 
-**Option 2 — manual (official MariaDB-recommended procedure, preferred for a replicated/Galera
-topology or anywhere you want to run the step under supervision):**
+```bash
+df -h . && du -sh db-data
+docker stop <APP_NAME>-mariadb
+cp -a db-data db-data.bak-<old-version>
+```
 
-1. Back up first — `make export` (or a manual `mariadb-dump`), plus a copy of `./db-data`.
-2. Recreate the container on the new image tag (`make recreate <env>`); it may fail to become
-   healthy until the upgrade runs — that's expected.
-3. Run the upgrade inside the container:
-   ```bash
-   make exec mariadb mariadb-upgrade -u root -p
-   ```
-4. Restart: `make restart <env>`.
+`db-data.bak-*` matches the `db-*` exclude of the deploy rsync, so a deploy will not delete it.
+The image's own pre-upgrade backup (`system_mysql_backup_<version>.sql.zst`, written into the data
+directory) covers the system `mysql` database only — not your site's data. **Downgrading is not
+supported:** once the new server has opened the data, the copy is the only way back.
 
-`mariadb-upgrade` is safe to run more than once — re-running it is a no-op if nothing needs
-upgrading. See MariaDB's own
+**Step 2 — upgrade.** `MARIADB_AUTO_UPGRADE=1` makes the image run `mariadb-upgrade` itself, once,
+on that start (empty and `0` mean off, as in the official image). Pass it for a single command,
+so there is nothing to clean up afterwards:
+
+```bash
+MARIADB_AUTO_UPGRADE=1 make recreate <env>
+```
+
+(Alternatively set `MARIADB_AUTO_UPGRADE=1` in `.env.secret` and remove it again in step 4.)
+
+**Step 3 — verify.** The log shows `Starting mariadb-upgrade` and `Finished mariadb-upgrade`, the
+container becomes `healthy`, and the data directory now records the new version:
+
+```bash
+make log mariadb
+cat db-data/mariadb_upgrade_info
+```
+
+**Step 4 — switch the flag off.** Recreate once more without the variable:
+
+```bash
+make recreate <env>
+```
+
+The container keeps the variable it was created with, so this is what turns it off. With matching
+versions the guard now passes silently — the only trace is the line
+`Launching /docker-entrypoint.d/10-version-guard.sh`. Do not leave `MARIADB_AUTO_UPGRADE` on
+permanently: the next version change would then upgrade without stopping.
+
+**Check that the host really runs the guard image.** Images are built and pushed manually, and
+`docker compose up` does not re-pull an image that already exists on the host, so a host only gets
+the guard from an image published under a **new tag** that `APP_DATABASE_IMAGE` points to (never
+overwrite a tag hosts have already pulled). The guard is present when
+
+```bash
+docker inspect --format '{{json .Config.Entrypoint}}' <APP_NAME>-mariadb
+```
+
+prints `["/docker-entrypoint.sh"]` (without the leading slash it is the official entrypoint, with
+no guard) and the startup log contains the `Launching ... 10-version-guard.sh` line.
+
+**Manual `mariadb-upgrade`.** Running `mariadb-upgrade` by hand inside a running container no
+longer applies to this image: the server does not start on old data, so there is nothing to
+`exec` into. For a replicated/Galera topology follow MariaDB's own
 [Upgrading Between Major MariaDB Versions](https://mariadb.com/kb/en/upgrading-between-major-mariadb-versions/)
-guide for the full official procedure.
+guide; the guard would have to be bypassed deliberately and this project does not ship a procedure
+for that.
 
 #### Collation drift after a MariaDB version bump (optional)
 
