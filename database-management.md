@@ -3,9 +3,11 @@
 ### Upgrading MariaDB version
 
 `APP_DATABASE_IMAGE` (`config/environment/.env.main`) pins the MariaDB version. The `mariadb` image
-has a **version guard**: if its version differs from the one that last upgraded `./db-data` (any
-`x.y.z` change), the server does not start, instead of silently running the new version on old data.
-A fresh, empty `./db-data` is not affected.
+has a **version guard**: if its release series (`major.minor`) differs from the one that last
+upgraded `./db-data`, the server does not start, instead of silently running the new series on old
+data. Patch bumps within a series (a change of only `z` in `x.y.z`) start normally — images built
+from an older Foundation version compared the full `x.y.z`, so make sure the host runs a current
+image (see [Docker Images](docker-images.md)). A fresh, empty `./db-data` is not affected.
 
 1. **Back up** — this is your rollback point (downgrading is not supported). Do it while the old
    version still runs, before the new image reaches the host:
@@ -54,9 +56,11 @@ A fresh, empty `./db-data` is not affected.
 
 A MariaDB major-version bump can also change the server's **default collation** (the rule it uses
 to compare/sort text) for any new table created without one explicitly set. WordPress's
-`DB_COLLATE` in `wp-config.php` (driven by `WP_DB_COLLATE` in `.env.secret`) is empty by default,
-so WordPress falls back to whatever the server picks — which means tables created before the
-version bump and tables created after it can end up on two different collations.
+`DB_COLLATE` in `wp-config.php` is driven by `WP_DB_COLLATE` in `.env.secret`. The `.env.secret`
+template sets a value, but check the `WP_DB_COLLATE` line in your own `.env.secret`: if it is empty
+or commented out (for example in a file generated from an older template), WordPress falls back to
+whatever the server picks — which means tables created before the version bump and tables created
+after it can end up on two different collations.
 
 This is **optional, not required** — your site keeps working either way. Pin a collation only if
 you want to eliminate the drift. Pinning `WP_DB_COLLATE` by itself is not enough: existing tables

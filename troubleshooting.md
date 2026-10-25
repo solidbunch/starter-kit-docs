@@ -320,7 +320,7 @@ df -h                     # Overall disk usage
 start: container ... is unhealthy`, `docker ps` shows `mariadb` as `Restarting`, the site is down.
 
 **Cause:** the version guard — the data in `./db-data` was last upgraded by another MariaDB
-version. The reason is in the log:
+release series (`major.minor`; patch bumps do not trigger it). The reason is in the log:
 
 ```bash
 docker compose logs --tail 30 mariadb

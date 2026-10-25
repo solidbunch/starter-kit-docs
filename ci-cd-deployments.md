@@ -192,11 +192,13 @@ your project (using your project's bucket/table names — see "Before you start"
 org/repo you set there):
 
 ```bash
-bash ./kit-modules/basis/sh/oidc.sh -m gen -e dev
+make oidc dev gen
 ```
 
-(Requires the AWS CLI installed locally and configured with credentials that can create IAM
-resources.) It walks you through three console steps, printing the exact values for each:
+(Run it from the project root after `make install` or `make env <env>` — the script reads the
+generated `.env`. It needs neither the AWS CLI nor credentials — it only prints values; you create
+the resources in the AWS Console yourself.) It walks you through three console steps, printing the exact values for
+each:
 
 1. **IAM → Identity providers → Add provider** — Provider type `OpenID Connect`, Provider URL
    `token.actions.githubusercontent.com`, Audience `sts.amazonaws.com`.
@@ -219,10 +221,11 @@ own summary page in the IAM console).
 **Go back to step 2 now and fill in `AWS_ROLE_TO_ASSUME` with that ARN.**
 
 To double-check an existing setup instead of generating a new one (verifies the OIDC provider,
-role, trust-policy scoping, and attached policy content against your real AWS account):
+role, trust-policy scoping, and attached policy content against your real AWS account — requires
+the AWS CLI installed locally and configured with credentials that can read IAM):
 
 ```bash
-bash ./kit-modules/basis/sh/oidc.sh -m test -e dev
+make oidc dev test
 ```
 
 Run this once per AWS account you deploy to — the same role/provider can be reused across `dev`,

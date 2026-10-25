@@ -11,7 +11,7 @@ make docker build
 make docker push
 ```
 
-The `mariadb` image has a version guard (it refuses to start on data from another MariaDB version).
+The `mariadb` image has a version guard (it refuses to start on data from another MariaDB release series, `major.minor`).
 A host gets it only from an image published under a **new tag** that `APP_DATABASE_IMAGE` points
 to — `docker compose up` does not re-pull a tag that already exists on the host. Check:
 

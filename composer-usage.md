@@ -112,9 +112,11 @@ StarterKit uses `solidbunch/wordpress-core-no-content` as the WordPress core sou
 
 ```json
 "require": {
-  "solidbunch/wordpress-core-no-content": "^7.0.2"
+  "solidbunch/wordpress-core-no-content": "<version constraint>"
 }
 ```
+
+Replace `<version constraint>` with the constraint your project uses (see the `require` block of your own `composer.json`).
 
 To change or bump the WordPress version, edit the version constraint and run inside the Composer container:
 ```bash
