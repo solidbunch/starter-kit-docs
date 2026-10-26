@@ -89,11 +89,16 @@ never the other way round.
    (no stack trace) if any is unset, and never logs the password.
 4. `cd scripts && npm install` (installs `markdown-it`; requires Node ≥ 20).
 5. Optional but recommended: `git config core.hooksPath .githooks` (once per checkout) enables a
-   pre-commit hook that blocks a commit if `index.md`'s TOC text has drifted from a file's own
-   `# heading` — offline, no WP credentials needed (`scripts/check-title-drift.mjs`, same check
-   `sync-docs.mjs` warns about at publish time, run early instead of first noticed in CI). Not
-   auto-installed by `git clone`: git only runs hooks from `.git/hooks` by default, which isn't
-   versioned, so `.githooks/` is opt-in per clone.
+   pre-commit hook that runs two offline checks, both always, and blocks the commit if either
+   fails: `scripts/check-title-drift.mjs` (`index.md`'s TOC text must match each file's own
+   `# heading`; same check `sync-docs.mjs` warns about at publish time, run early instead of
+   first noticed in CI) and `scripts/check-doc-claims.mjs` (doc claims verified against the
+   foundation checkout, see "Doc claims check"). The foundation is found via `FOUNDATION_PATH`,
+   else `../starter-kit-foundation.loc` next to this checkout, else next to the main checkout
+   (so it also works in git worktrees). Without a foundation checkout the claims check prints a
+   WARNING and passes; `DOC_CLAIMS_REQUIRE_FOUNDATION=1` makes that a failure. No WP credentials
+   needed. Not auto-installed by `git clone`: git only runs hooks from `.git/hooks` by default,
+   which isn't versioned, so `.githooks/` is opt-in per clone.
 
 ## Running
 

@@ -1,8 +1,16 @@
 #!/bin/sh
-# Blocks a commit if index.md's TOC text has drifted from any linked file's own `# heading`
-# (the file's heading is the published WordPress title — see scripts/lib/manifest.mjs's
-# docblock). Offline, no WP credentials needed: scripts/check-title-drift.mjs only parses
-# Markdown locally.
+# Runs two offline checks and blocks the commit if either fails. Both always run, so a failure
+# in the first never hides the second.
+#
+# 1. scripts/check-title-drift.mjs: index.md's TOC text must match each linked file's own
+#    `# heading` (the file's heading is the published WordPress title — see
+#    scripts/lib/manifest.mjs's docblock). Only parses Markdown locally, no WP credentials.
+# 2. scripts/check-doc-claims.mjs: checkable claims in the docs (paths, names, ...) are verified
+#    against a checkout of starter-kit-foundation. The foundation is found via FOUNDATION_PATH,
+#    else ../starter-kit-foundation.loc next to this checkout, else next to the main checkout
+#    (so it also works in git worktrees). Without a foundation checkout it prints a WARNING and
+#    passes; DOC_CLAIMS_REQUIRE_FOUNDATION=1 turns that into a failure. The environment is
+#    passed through to the checker unchanged.
 #
 # Not auto-installed by `git clone` — git only runs hooks from `.git/hooks` by default, which
 # isn't versioned. Enable once per checkout with:
@@ -18,4 +26,7 @@ if [ ! -d node_modules ]; then
   exit 1
 fi
 
-node check-title-drift.mjs
+status=0
+node check-title-drift.mjs || status=1
+node check-doc-claims.mjs || status=1
+exit "$status"
