@@ -20,8 +20,7 @@ SMTP_SECURE=tls
 SMTP_DEBUG=0
 ```
 
-`SMTP_DEBUG` output goes to PHP's `error_log()`, which lands in the `php` container's logs — check
-it with `make log php`.
+`SMTP_DEBUG` output appears in the `php` container logs: run `make log php`.
 
 `.env.secret`:
 ```bash

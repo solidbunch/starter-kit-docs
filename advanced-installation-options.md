@@ -60,13 +60,13 @@ This converts the StarterKit into your own standalone project — with a fresh G
 
 ### 4. Composer
 
+> ⚠️ This method needs a license. `basis`, `monitoring-client` and `monitoring-server` are paid modules that Composer downloads from a private repository. Set your license credentials in Composer's global `COMPOSER_AUTH` before running the command, or it fails. See [Quick start after purchase](quick-start-after-purchase.md).
+
 ```bash
 composer create-project solidbunch/starter-kit-foundation my-project
 ```
 
 ✅ Requires PHP and Composer. Suitable for CI/CD and PHP-centric workflows. Check the required PHP version in the [StarterKit's `composer.json`](https://github.com/solidbunch/starter-kit-foundation/blob/main/composer.json).
-
-> ⚠️ Several required packages (`basis`, `monitoring-client`, `monitoring-server`) are licensed and resolve from a private Composer repository — `composer create-project` fails on them without `COMPOSER_AUTH` configured globally first. See [Quick start after purchase](quick-start-after-purchase.md).
 
 ---
 

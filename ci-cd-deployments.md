@@ -2,43 +2,41 @@
 
 Two ready-to-use pipelines ship with the project: GitHub Actions (`.github/workflows/`) and
 GitLab CI/CD (`.gitlab-ci.yml` + `.gitlab/ci/`). Both deploy the same way — build, then `rsync`
-the code to the server and run a `make` sequence over SSH — and both need a one-time setup on
-the Git hosting side before the first pipeline run will work. Pick whichever hosting you use;
-they don't depend on each other and can coexist. Only GitHub Actions can also **provision**
-servers (Terraform + Ansible); GitLab CI/CD is deploy-only.
+the code to the server and run a `make` sequence over SSH — and both can also **provision**
+servers (Terraform + Ansible). Both need a one-time setup on the Git hosting side before the first
+pipeline run will work. Pick whichever hosting you use; they don't depend on each other and can
+coexist.
 
-> If this project was set up with the `bootstrap-project` Claude Code skill, most of "Before you
-> start" below may already be done — check whether the project's own `README.md` has a "CI/CD
-> setup" section filled in with real values before editing anything by hand.
+> 💡 If you set the project up with the `bootstrap-project` Claude Code skill, check the project's
+> `README.md` first. If its "CI/CD setup" section has real values, "Before you start" is already
+> done.
 
 ## Before you start (both pipelines)
 
 ### 1. Set your project's identity in `.env.main`
 
-`config/environment/.env.main` ships with SolidBunch's own values for a setting that only
-matters for GitHub provisioning (step 3 below) — change it before provisioning:
+Open `config/environment/.env.main` and set the values for the platform you use. They are only
+needed for provisioning: they go into the AWS trust policies (Step 3 of your platform's section),
+which let only your repository's pipelines assume the AWS roles.
 
-| Field(s) to edit            | Shipped with (demo values)             | Needed for                                                     |
-| --------------------------- | -------------------------------------- | -------------------------------------------------------------- |
-| `GITHUB_ORG`, `GITHUB_REPO` | `solidbunch`, `starter-kit-foundation` | GitHub provisioning only (AWS OIDC trust policy, step 3 below) |
+| Platform | Settings to edit | What to set |
+| -------- | ---------------- | ----------- |
+| GitHub   | `GITHUB_ORG`, `GITHUB_REPO` | The GitHub org and repo this code lives in. They ship with SolidBunch's own values (`solidbunch`, `starter-kit-foundation`). |
+| GitLab   | `GITLAB_PROJECT_PATH`, `GITLAB_PROJECT_ID`, `GITLAB_HOST`, `GITLAB_PROVISION_BRANCHES` | The project path (`group/project`), the numeric project ID (checked only when `GITLAB_HOST` is `gitlab.com`), your GitLab host (default `gitlab.com`; change it for self-managed GitLab), and the branches allowed to provision (default `main develop`). |
 
-`GITHUB_REPO`/`GITHUB_ORG` must match the actual GitHub org/repo this code lives in — they're
-baked into the AWS IAM trust policy in step 3, which only lets *that* repo's workflows assume the
-role.
+The names of the AWS roles (`ROLE_NAME`, `BOOTSTRAP_ROLE_NAME`; for GitLab `GITLAB_ROLE_NAME`,
+`GITLAB_BOOTSTRAP_ROLE_NAME`) are in the same file; the defaults are fine unless a role with that
+name already exists in your AWS account.
 
-`TF_VAR_tf_backend_bucket` and `TF_VAR_tf_lock_table` (Terraform remote state) need **no manual
-edit** — `TF_VAR_tf_backend_bucket=${APP_NAME}-terraform-state-storage` already derives from
-`APP_NAME`, so it's unique per project the moment `APP_NAME` is (already required, since every
-project renames it). `TF_VAR_tf_lock_table` stays the shared default `terraform-locks` — it only
-needs to be unique within your own AWS account, not globally, so there's nothing to change there
-either.
+> 💡 The Terraform state bucket name (`TF_VAR_tf_backend_bucket`) needs no edit: it is derived from
+> `APP_NAME`. State locking is built into S3, so there is no lock table to set up.
 
 ### 2. Know how the deploy target is resolved
 
-Neither pipeline needs a deploy-target file edit or a CI/CD variable. At deploy time, the job
-reads `APP_DOMAIN` straight out of `config/environment/.env.type.dev` (or `.env.type.prod`) —
-already tracked in git, already set correctly if the project was renamed via `bootstrap-project` —
-and uses it as both the SSH destination and the deploy path (`/srv/$APP_DOMAIN`):
+Set `APP_DOMAIN` in `config/environment/.env.type.dev` and `.env.type.prod` to the domain of each
+server, and commit (projects renamed with `bootstrap-project` already have this). The deploy job
+reads it from there and uses it as both the SSH host and the deploy path (`/srv/$APP_DOMAIN`), so
+no CI/CD variable is needed for the deploy target:
 
 ```dotenv
 # config/environment/.env.type.dev
@@ -54,10 +52,8 @@ APP_DOMAIN=<your-domain>
 > **exactly** `APP_DOMAIN`'s value for that environment. The deploy job runs `ssh "$APP_DOMAIN"`
 > — if your SSH alias doesn't match, it fails with `Could not resolve hostname`.
 
-`config/environment/.env.type.stage` already ships with the project, with its own `APP_DOMAIN` —
-`stage` just has no deploy trigger yet (no `workflow-deploy-stage.yml` / GitLab equivalent). The
-moment one exists, the same `APP_DOMAIN` derivation resolves a stage target for free, no other
-setup needed.
+`config/environment/.env.type.stage` has its own `APP_DOMAIN`, but there is no stage deploy
+workflow yet.
 
 ### 3. Generate a deploy SSH key pair
 
@@ -65,11 +61,10 @@ setup needed.
 ssh-keygen -t ed25519 -f deploy_key -N ""
 ```
 
-Dedicated to server access, not your personal key. The private half becomes the `SSH_KEY`
-secret (set up below, per pipeline). The public half either gets baked automatically into a
-newly-provisioned server (GitHub provisioning derives it from the same `SSH_KEY` secret — you
-never manually touch `~/.ssh/authorized_keys`), or, if you're pointing at a server you already
-have, you add it there yourself — see "Provision the server(s)" below.
+Use a dedicated key, not your personal one. The private half becomes the `SSH_KEY` secret (set up
+per pipeline below). For a server that GitHub provisioning creates, the public half is derived from
+`SSH_KEY` and installed automatically. For a server you already have, add the public half to
+`~/.ssh/authorized_keys` yourself (see GitHub Actions, Step 5).
 
 Now continue with whichever pipeline(s) you use.
 
@@ -83,16 +78,14 @@ Workflow files in `.github/workflows/`:
 | -------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `workflow-deploy-develop.yml`    | push to `develop` branch, or manual | deploys to **dev** (host derived from `APP_DOMAIN` in `.env.type.dev`)                            |
 | `workflow-deploy-production.yml` | manual only                         | deploys to **prod** (host derived from `APP_DOMAIN` in `.env.type.prod`) — no auto-deploy on push |
-| `job-provision.yml`              | manual only                         | provisions infrastructure (Terraform + Ansible) for `dev` / `stage` / `prod`                      |
+| `job-bootstrap-state.yml`        | manual only                         | creates the Terraform state bucket, once per AWS account (Step 4)                                 |
+| `job-provision.yml`              | manual only                         | provisions infrastructure (Terraform + Ansible) for `dev` / `prod`                                |
 
-Steps 1–6 below are the minimum to get both pipelines running — none of them require creating
-anything under **Settings → Environments** first. GitHub creates `dev`/`stage`/`prod`
-automatically, empty, the first time a workflow references one, and every secret/variable used
-below (all repo-level) still applies regardless. Follow Steps 1–6 in order — later ones depend on
-earlier ones (the AWS role in step 3 needs the `AWS_ROLE_TO_ASSUME` variable slot created in
-step 2; provisioning in step 4 needs that role to exist). Step 7 is optional and can be done any
-time, including never — see it for the two cases where creating an Environment by hand actually
-matters.
+Do Steps 1–7 in order to get GitHub Actions running. Step 3 creates the two AWS roles whose ARNs
+you paste into the variables from Step 2, Step 4 creates the Terraform state bucket, and Step 5
+(provisioning) needs both. Steps 6 and 8 are optional. You don't need to create anything under
+**Settings → Environments** first: GitHub creates `dev`/`stage`/`prod` automatically the first time
+a workflow uses one.
 
 ### Step 1 — add the required secrets
 
@@ -103,7 +96,7 @@ Go to **Settings → Secrets and variables → Actions → Secrets** and add:
 | `SSH_KEY`           | **yes**   | deploy + provision | Private key from the deploy pair generated above (server access)                                                                           |
 | `SSH_CONFIG`        | **yes**   | deploy + provision | SSH client config for the servers — see example below. Host-key trust comes entirely from this file, no separate known-hosts secret needed |
 | `COMPOSER_AUTH`     | **yes**   | deploy + provision | Unlocks licensed Composer packages (kit modules)                                                                                           |
-| `TFPLAN_PASSPHRASE` | no        | provision only     | Enables encrypted Terraform plan review — see Step 5                                                                                       |
+| `TFPLAN_PASSPHRASE` | no        | provision only     | Enables encrypted Terraform plan review — see Step 6                                                                                       |
 
 `SSH_CONFIG` example — each `Host` alias must be exactly that environment's `APP_DOMAIN` value
 (see "Know how the deploy target is resolved" above):
@@ -149,106 +142,105 @@ If you also have paid `kit-modules` licenses, add an `http-basic` entry for
 Dependabot needs its own, separate copy of these licensing credentials — it can't read the
 `COMPOSER_AUTH` secret above. See the "Dependabot" section near the end of this page.
 
-### Step 2 — add the required variables
+### Step 2 — add the AWS role variables
 
 Go to **Settings → Secrets and variables → Actions → Variables** (repo-level):
 
-| Variable             | Level | Required? | Used by        | What it does                                                                                                                                                            |
-| -------------------- | ----- | --------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AWS_ROLE_TO_ASSUME` | repo  | no        | provision only | ARN of the IAM role GitHub OIDC assumes to run Terraform/Ansible. **Leave this unset for now** — step 3 below generates the role and gives you the ARN to paste in here |
+| Variable                       | Level | Required?        | Used by              | What it does                                                                                                                      |
+| ------------------------------ | ----- | ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `AWS_ROLE_TO_ASSUME`           | repo  | for provisioning | provision            | ARN of the everyday IAM role that GitHub OIDC assumes to run Terraform/Ansible. Skip it for now: you get the ARN in Step 3        |
+| `AWS_BOOTSTRAP_ROLE_TO_ASSUME` | repo  | for provisioning | state bootstrap only | ARN of the narrower IAM role that creates the Terraform state bucket (Step 4). Skip it for now: you get the ARN in Step 3 |
 
 There's no deploy-target variable to set here — see "Know how the deploy target is resolved"
 above. There's no AWS region variable either — it's read automatically from
 `config/environment/.env.main`.
 
-`APP_MULTI_INSTANCE` is optional and only useful once a GitHub Environment exists to scope it to
-— see Step 7.
+Optional: `APP_MULTI_INSTANCE` is set per environment, so create the Environments first (Step 8).
 
-### Step 3 — cloud side: create the AWS role GitHub will assume
+### Step 3 — cloud side: create the AWS roles GitHub will assume
 
-Provisioning never uses long-lived cloud access keys stored as secrets. It authenticates via
-**OpenID Connect (OIDC)**: GitHub Actions presents a short-lived, workflow-scoped identity token
-to the cloud provider, the provider checks it against a trust policy scoped to your GitHub
-org/repo (the `GITHUB_ORG`/`GITHUB_REPO` values you set in "Before you start"), and hands back
-temporary credentials for that run only. This is the standard, provider-agnostic pattern — the
-concept and setup shape are the same everywhere:
+Provisioning authenticates to AWS with OpenID Connect (OIDC), so no long-lived access keys are
+stored as secrets. You create an IAM identity provider and two IAM roles in your AWS account, scoped
+to your GitHub org/repo (the `GITHUB_ORG`/`GITHUB_REPO` values from "Before you start"). GitHub
+Actions then assumes a role for each run and gets temporary credentials:
 
-1. Register GitHub's OIDC issuer (`token.actions.githubusercontent.com`) as a trusted identity
-   provider in the cloud account.
-2. Create a role/service-account scoped to your repo (and optionally branch/environment) that
-   this identity provider is allowed to assume.
-3. Attach only the permissions Terraform/Ansible actually need to that role — no standing keys.
-4. Put the resulting role identifier into CI as a variable (not a secret — it's not sensitive on
-   its own).
+- **Everyday provisioning role** (`AWS_ROLE_TO_ASSUME`) — used by every provisioning run. It cannot
+  create the Terraform state bucket, by design.
+- **Bootstrap role** (`AWS_BOOTSTRAP_ROLE_TO_ASSUME`) — narrower, used once by Step 4, only to
+  create the state bucket.
 
-Every major cloud supports this: AWS via an **IAM OIDC identity provider + IAM role**, GCP via
-**Workload Identity Federation**, Azure via **federated credentials on an App Registration/Managed
-Identity**. This project's shipped Terraform/Ansible code targets **AWS** specifically, so the
-rest of this step is AWS-flavored — swap in your provider's equivalent if you've adapted the
-infrastructure code elsewhere.
+> 💡 The shipped Terraform/Ansible code targets AWS. Other clouds support the same pattern (GCP
+> Workload Identity Federation, Azure federated credentials), but you would adapt the code yourself.
 
-The project ships a helper that prints the exact AWS console steps and a ready-to-paste policy for
-your project (using your project's bucket/table names — see "Before you start" — and the GitHub
-org/repo you set there):
+The project ships a helper that prints the exact AWS console steps and ready-to-paste policies for
+both roles (using your project's bucket name and the GitHub org/repo you set in "Before you
+start"):
 
 ```bash
 make oidc dev gen
 ```
 
-(Run it from the project root after `make install` or `make env <env>` — the script reads the
-generated `.env`. It needs neither the AWS CLI nor credentials — it only prints values; you create
-the resources in the AWS Console yourself.) It walks you through three console steps, printing the exact values for
-each:
+Run it from the project root after `make install` or `make env <env>` — the script reads the
+generated `.env`. It only prints values and you create the resources in the AWS Console yourself,
+so it needs neither the AWS CLI nor credentials. It prints three steps:
 
-1. **IAM → Identity providers → Add provider** — Provider type `OpenID Connect`, Provider URL
-   `token.actions.githubusercontent.com`, Audience `sts.amazonaws.com`.
-2. **IAM → Roles → Create role → Web identity** — Identity provider
-   `token.actions.githubusercontent.com`, Audience `sts.amazonaws.com`, GitHub
-   organization/repository set to your repo (from `GITHUB_ORG`/`GITHUB_REPO` in
-   `config/environment/.env.main`). AWS generates the trust policy automatically from this.
-3. **IAM → Policies → Create policy → JSON**, using the printed **permissions policy JSON** —
-   scoped to exactly what Terraform needs: read/write on the state S3 bucket
-   (`TF_VAR_tf_backend_bucket`), read/write on the DynamoDB lock table (`TF_VAR_tf_lock_table`),
-   and `ec2:*`. Then attach that policy to the role created in step 2 (**IAM → Roles →
-   `${ROLE_NAME}` → Permissions → Attach policies** — also printed by the script).
+- **STEP 0 — identity provider** (once per AWS account; skip it if the provider already exists).
+  **IAM → Identity providers → Add provider** — Provider type `OpenID Connect`, Provider URL
+  `token.actions.githubusercontent.com`, Audience `sts.amazonaws.com`.
+- **STEP 1 — everyday provisioning role** (`ROLE_NAME` in `.env.main`).
+  1. **IAM → Roles → Create role → Web identity** — the identity provider and audience from
+     STEP 0 and your GitHub org/repo. Skip adding permissions for now.
+  2. Replace the trust policy of the new role with the printed one.
+  3. Create a policy from the printed permissions JSON (read/write on the Terraform state bucket,
+     plus `ec2:*`) and attach it to the role.
+- **STEP 2 — bootstrap role** (`BOOTSTRAP_ROLE_NAME`). The same three sub-steps, with its own printed
+  trust policy (limited to the `main` branch) and permissions JSON (create and configure the state
+  bucket).
 
-None of this prints the role's ARN — the script only prints the three steps above. The role name
-is `ROLE_NAME` from `.env.main` (`github-actions-role`, safe to leave as-is — it only needs to be
-unique within your own AWS account), so once the role exists you construct the ARN yourself:
-`arn:aws:iam::<your-account-id>:role/github-actions-role` (find `<your-account-id>` on the role's
-own summary page in the IAM console).
+For each role the script prints the ARN to store, with `<ACCOUNT_ID>` as a placeholder. Replace it
+with your 12-digit AWS account ID (top-right in the AWS Console).
 
-**Go back to step 2 now and fill in `AWS_ROLE_TO_ASSUME` with that ARN.**
+**Go back to Step 2 now and set `AWS_ROLE_TO_ASSUME` and `AWS_BOOTSTRAP_ROLE_TO_ASSUME` to those
+ARNs.**
 
-To double-check an existing setup instead of generating a new one (verifies the OIDC provider,
-role, trust-policy scoping, and attached policy content against your real AWS account — requires
-the AWS CLI installed locally and configured with credentials that can read IAM):
+To double-check an existing setup instead of generating a new one (verifies the identity provider
+and both roles: trust-policy scoping and attached policy content, against your real AWS account —
+requires the AWS CLI installed locally and configured with credentials that can read IAM):
 
 ```bash
 make oidc dev test
 ```
 
-Run this once per AWS account you deploy to — the same role/provider can be reused across `dev`,
-`stage`, and `prod` if they share an account, since scoping is by GitHub org/repo, not by
-environment.
+Do Step 3 once per AWS account you deploy to — the same roles can be reused across `dev`, `stage`
+and `prod` if they share an account.
 
-### Step 4 — provision the server(s)
+### Step 4 — create the Terraform state bucket (once)
 
-Creates the server (Terraform) and installs required software (Ansible), using the SSH key from
-step 1 and the AWS role from step 3:
+Provisioning expects the S3 bucket that stores Terraform state to exist already; the everyday role
+cannot create it. Create it once per AWS account: repo → **Actions** tab → *Bootstrap Terraform
+State Backend* in the left sidebar → **Run workflow**. The only input is `CONFIRM`: type the AWS
+region exactly as it is set in `TF_VAR_aws_region` in `config/environment/.env.main`. A mismatch
+stops the run before it touches AWS.
+
+### Step 5 — provision the server(s)
+
+Creates the server (Terraform) and installs required software (Ansible), using the `SSH_KEY`
+secret from Step 1 and the AWS roles from Step 3:
 
 - **Preferred:** repo → **Actions** tab → *Provision Infrastructure* in the left sidebar →
   **Run workflow**, choosing:
   
-  - `ENVIRONMENT_TYPE`: `dev`, `stage`, or `prod` — only `dev` and `prod` ship with a Terraform
-    environment directory (`kit-modules/basis/terraform/envs/{dev,prod}/`); choosing `stage` fails
-    until you create `.../envs/stage/` yourself, following the same pattern
+  - `ENVIRONMENT_TYPE`: `dev` or `prod`. `stage` is listed but rejected: its Terraform
+    environment exists (`kit-modules/basis/terraform/envs/stage/`), but Ansible has no `stage` host
+    (`kit-modules/basis/ansible/inventory.yml`), so a server would be created that Ansible cannot
+    configure
   - `ACTION_TYPE`: `plan` (preview only — always run this first), `apply`, or `destroy` (tears
     infrastructure down, only on purpose)
   - `SKIP_ANSIBLE`: leave unchecked unless you specifically want Terraform-only (no server
     software installed)
 
-- **Manual/local alternative**, in this exact order (later layers depend on the earlier ones):
+- **Manual/local alternative**, in this exact order (later layers depend on the earlier ones;
+  skip `make tf state apply` if you already ran Step 4):
   
   ```bash
   make tf state apply
@@ -259,14 +251,14 @@ step 1 and the AWS role from step 3:
 
 - **Already have a server?** If you're pointing at server(s) set up outside this project's
   Terraform/Ansible, skip this step entirely — just make sure the public half of the deploy key
-  pair from step 1 is on the server (e.g. in `~/.ssh/authorized_keys` for the deploy user) and the
-  required software is installed.
+  pair (from "Before you start", step 3) is on the server (e.g. in `~/.ssh/authorized_keys` for the
+  deploy user) and the required software is installed.
 
 Check the **Actions** tab for logs after any run.
 
-### Step 5 — optional: reviewed Terraform plans
+### Step 6 — optional: reviewed Terraform plans
 
-If you add the optional `TFPLAN_PASSPHRASE` secret (step 1), the provisioning workflow gets a
+If you add the optional `TFPLAN_PASSPHRASE` secret (Step 1), the provisioning workflow gets a
 "plan → review → apply" safety flow instead of always re-planning right before applying:
 
 1. Run the workflow with `ACTION_TYPE: plan`. The plan is encrypted and attached to that run as
@@ -278,7 +270,7 @@ If you add the optional `TFPLAN_PASSPHRASE` secret (step 1), the provisioning wo
 If `TFPLAN_PASSPHRASE` isn't set, this is skipped automatically (a warning is written to the run
 summary) and `apply` just plans and applies in the same run — nothing breaks.
 
-### Step 6 — deploy
+### Step 7 — deploy
 
 - **Dev**: push to `develop`, or run `workflow-deploy-develop.yml` manually from the **Actions**
   tab.
@@ -286,32 +278,24 @@ summary) and `apply` just plans and applies in the same run — nothing breaks.
 
 Check the **Actions** tab for logs after any run.
 
-### Step 7 — optional: GitHub Environments
+### Step 8 — optional: GitHub Environments
 
-Nothing above requires creating anything under **Settings → Environments**. If `dev`/`stage`/
-`prod` don't exist yet, GitHub creates them automatically, empty, the first time a workflow
-references one, and every secret/variable from Steps 1–2 (all repo-level) still applies. Create
-one by hand only if you want either of these:
+Create an Environment by hand only if you want one of these:
 
 - **Gate deploys/provisioning** (optional, recommended for `prod`): **Settings → Environments →
   New environment**, named exactly `dev`/`stage`/`prod` → open it → add **required reviewers**
   and/or a **wait timer** under protection rules. This gates both the deploy and the provisioning
   pipeline for that environment.
-- **Scope `APP_MULTI_INSTANCE` per server**: this variable can only differ between `dev` and
-  `prod` if it's set at the environment level, inside that environment's own **Variables**
-  section — setting it repo-level would turn it on for prod too. That's *why* this needs an
-  actual Environment object to exist first on GitHub: an environment-scoped variable/secret is
-  physically attached to that object. GitLab has no equivalent prerequisite for the same thing —
-  see "GitLab CI/CD" below, where its "Environment scope" is just a name match on the variable
-  itself, nothing to create beforehand. See
+- **Scope `APP_MULTI_INSTANCE` per server**: create the Environment first, then add the variable
+  inside that environment's own **Variables** section. A repo-level value would turn it on for
+  prod too. See
   [Infrastructure → Reverse proxy (multi-instance)](infrastructure.md#reverse-proxy-multi-instance)
-  for what `APP_MULTI_INSTANCE` actually does.
+  for what `APP_MULTI_INSTANCE` does.
 - **Different `SSH_KEY`/`SSH_CONFIG`/`COMPOSER_AUTH` per environment** (rare — most projects use
-  the same deploy key and Composer auth everywhere): same mechanism as above. Add an
-  environment-scoped secret with the same name inside that environment's own **Secrets**
-  section; it overrides the repo-level one for runs pinned to that environment. GitLab's
-  equivalent (a `dev`- or `prod`-scoped variable of the same name) is documented under "GitLab
-  CI/CD" below and needs no Environment object either.
+  the same deploy key and Composer auth everywhere): add an environment-scoped secret with the
+  same name inside that environment's own **Secrets** section; it overrides the repo-level one for
+  runs pinned to that environment. GitLab has its own equivalent, described under "GitLab CI/CD"
+  below.
 
 > Environments with their own secrets/variables work on a public repo on any GitHub plan. On a
 > **private** repo you need GitHub Pro, Team, or Enterprise.
@@ -331,48 +315,32 @@ the licensed modules actually resolve, so it passes with or without a license co
 that one check, review the diff yourself before merging any PR — a bad bump still only surfaces
 for real after merging into `develop` triggers the dev deploy.
 
-The composer update source ships pre-wired to reach the licensed modules, plus two explicit
-`ignore:` exclusions for dependencies it can't usefully update:
+For the four licensed `kit-modules` (`solidbunch/basis`, `monitoring-client`,
+`monitoring-server`, `proxy`), add `DEPENDABOT_LICENSE_USERNAME` (your license email) and
+`DEPENDABOT_LICENSE_PASSWORD` (your license key) under **Settings → Secrets and variables →
+Dependabot**. This is a separate store from Actions secrets, which Dependabot cannot read. Without
+them, updates for those four modules fail with an authentication error (see **Insights →
+Dependency graph → Dependabot**) and no PR is opened; other dependencies are unaffected. You can
+leave them unset until you have a paid license. For the license itself, see
+[Quick start after purchase](quick-start-after-purchase.md).
 
-- **Licensed `kit-modules`** (`solidbunch/basis`, `monitoring-client`, `monitoring-server`,
-  `proxy`) resolve from the private composer repository
-  (`https://licensing.starter-kit.io/wp-json/skl/v1/`, `http-basic` auth — same scheme as
-  `COMPOSER_AUTH`, see [Quick start after purchase](quick-start-after-purchase.md)).
-  `dependabot.yml` already declares a named `registries:` entry of `type: composer-repository`
-  for it, but Dependabot reads its credentials from a **separate secret store** —
-  **Settings → Secrets and variables → Dependabot**, not Actions — so add
-  `DEPENDABOT_LICENSE_USERNAME` (your license email) and `DEPENDABOT_LICENSE_PASSWORD` (your
-  license key) there once you have a paid license.
-  - Without those two secrets, the update job for just those 4 modules fails with an
-    authentication error — visible under **Insights → Dependency graph → Dependabot → Recent
-    update jobs** — and no PR gets opened for them. It fails loudly rather than silently
-    downgrading a resolved package to an unlicensed stub, and doesn't block updates for anything
-    else in `composer.json` (`wpackagist-plugin/*`, `solidbunch/wordpress-core-no-content`, …).
-    Safe to leave unset until you're ready to keep those modules current via Dependabot.
-- `solidbunch/starter-kit-theme` is installed from a direct git (VCS) repository on a branch
-  constraint (`dev-master`), not a tagged version — Dependabot's version-update model doesn't
-  apply to this kind of dependency, so `dependabot.yml` explicitly `ignore:`s it rather than
-  letting it fail every run.
-- `roave/security-advisories` (required as `dev-latest`) is a conflict-only marker package with
-  no real releases of its own — also `ignore:`-d, to avoid noise from a "dependency" that was
-  never meant to be version-bumped.
+`dependabot.yml` already excludes `solidbunch/starter-kit-theme` and `roave/security-advisories`,
+which Dependabot cannot version-bump. No action needed.
 
-**Watch for Docker image version bumps.** Dependabot doesn't track the `APP_*_IMAGE` tags in
-`config/environment/.env.main` (they are bumped manually), but a PR that touches them deserves a
-closer look: changing `APP_DATABASE_IMAGE` stops the deploy at `make recreate` until the database
-is upgraded on purpose — see
+**Docker image tags.** Dependabot does not update the `APP_*_IMAGE` tags in
+`config/environment/.env.main`; bump them by hand. If a PR changes `APP_DATABASE_IMAGE`, the deploy
+stops when it recreates the containers, until you upgrade the database — see
 [Database management — Upgrading MariaDB version](database-management.md#upgrading-mariadb-version).
 
 ---
 
 ## GitLab CI/CD
 
-An independent pipeline for plain GitLab.com shared runners (no self-hosted runner needed),
-covering **deploy only** — dev on push to `develop`, prod via a manual pipeline run on `main`.
-There is no GitLab equivalent of the GitHub provisioning workflow; provision servers via GitHub
-Actions (see Step 4 above — this works even if you deploy exclusively through GitLab, as long as
-the code is also mirrored to a GitHub repo) or manually. Environment names match GitHub exactly:
-`dev` and `prod`.
+An independent pipeline for plain GitLab.com shared runners (no self-hosted runner needed). It
+**deploys** — dev on push to `develop`, prod via a manual pipeline run on `main` — and it can also
+**provision** servers (Terraform + Ansible), selected with the `PIPELINE_KIND` input of a manual
+pipeline run (Step 3, optional). Provisioning needs GitLab 18.1 or newer, which introduced pipeline
+inputs. Environment names match GitHub exactly: `dev` and `prod`.
 
 ### Step 1 — add CI/CD variables
 
@@ -398,16 +366,13 @@ different keys — the deploy job always reads plain `$SSH_KEY`/`$SSH_CONFIG`, s
 pair is enough for most setups. Only add a `dev`- or `prod`-scoped override (same variable name) if
 that environment needs a different key/config; GitLab resolves the most specific matching scope.
 
-`APP_MULTI_INSTANCE` is read the same plain `$APP_MULTI_INSTANCE` way, which is why it's shown
+`APP_MULTI_INSTANCE` is read the same plain `$APP_MULTI_INSTANCE` way, which is why it is shown
 above as two separate rows rather than one `All`-scoped row: leave out whichever environment you
-don't want it on. Unlike GitHub (see "GitHub Actions" above), there's no prerequisite object to
-create first — GitLab's "Environment scope" is just a name match evaluated on the variable
-itself at run time, so both rows can be added directly here, in this same step.
+don't want it on. GitLab's "Environment scope" is just a name match on the variable itself, so there
+is nothing to create first.
 
-There's no deploy-target variable here either — see "Know how the deploy target is resolved"
-above; the same `APP_DOMAIN`-derivation applies on GitLab. One visible side effect: the GitLab
-Environments page shows no "View deployment" link for `dev`/`prod` — that's expected, not a
-misconfiguration.
+There is no deploy-target variable here either — see "Know how the deploy target is resolved"
+above; the same `APP_DOMAIN` derivation applies on GitLab.
 
 > Optional, recommended for `prod`: **Settings → CI/CD → Protected environments** → protect
 > `prod` to restrict who can trigger a prod release.
@@ -421,3 +386,57 @@ misconfiguration.
 - Any other branch produces no pipeline at all — that's expected, not a misconfiguration.
 
 Check pipeline logs under **CI/CD → Pipelines** after any run.
+
+### Step 3 — optional: provision servers
+
+Skip this step if your servers already exist. Otherwise, in order:
+
+1. Set the `GITLAB_*` values in `config/environment/.env.main` (see "Before you start").
+2. Create the AWS identity provider and the two IAM roles (everyday provisioning role and
+   bootstrap role) by following the output of:
+
+   ```bash
+   make oidc dev gen gitlab
+   ```
+
+   It prints the same STEP 0 / 1 / 2 sequence as in GitHub Actions, Step 3, with the trust policies
+   shaped for GitLab: the identity provider URL is your `GITLAB_HOST`, and the everyday role trusts
+   only the branches in `GITLAB_PROVISION_BRANCHES`. Check the result with
+   `make oidc dev test gitlab`.
+
+3. Add these in **Settings → CI/CD → Variables**:
+
+   | Variable                       | Required?        | Environment scope | Notes                                                                                                                                      |
+   | ------------------------------ | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+   | `AWS_ROLE_TO_ASSUME`           | yes              | `dev`, `prod`     | Everyday role ARN. One row per environment; the same ARN can be reused if they share an AWS account                                         |
+   | `AWS_BOOTSTRAP_ROLE_TO_ASSUME` | yes              | `All` (default)   | Bootstrap role ARN. Do not scope it to an environment                                                                                       |
+   | `TFPLAN_PASSPHRASE`            | no               | `All`             | Passphrase that encrypts saved Terraform plans and the state backup taken before a destroy. Without it you get a warning, not a failure     |
+   | `PLAN_ARTIFACT_TOKEN`          | no               | `All`             | Project access token, a fallback for fetching a saved plan when the job token is not allowed to                                             |
+
+4. Create the Terraform state bucket (once per AWS account): **CI/CD → Pipelines → Run pipeline**,
+   branch `main`, `PIPELINE_KIND` = `bootstrap-state`, `CONFIRM` = the AWS region exactly as set in
+   `TF_VAR_aws_region` in `config/environment/.env.main`.
+
+5. Provision: **CI/CD → Pipelines → Run pipeline**, on a branch listed in
+   `GITLAB_PROVISION_BRANCHES`, with:
+
+   | Input             | Value                                                                                                                  |
+   | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+   | `PIPELINE_KIND`   | `provision`                                                                                                            |
+   | `ENVIRONMENT_TYPE`| `dev` or `prod` (`stage` is rejected: it has no Ansible host)                                                          |
+   | `ACTION_TYPE`     | `plan` (preview only — always run this first), `apply`, or `destroy`                                                   |
+   | `SKIP_ANSIBLE`    | leave unchecked unless you want Terraform only                                                                         |
+   | `PLAN_JOB_ID`     | optional: the GitLab job ID of an earlier `plan` run, to apply exactly that plan                                       |
+   | `CONFIRM_DESTROY` | for `destroy` only: the same value as `ENVIRONMENT_TYPE`                                                               |
+
+6. After the first provisioning run of each environment, set its resource group to process runs in
+   order. The pipeline cannot do this itself, and without it two provisioning runs of the same
+   environment can overlap. Call the GitLab API once per environment (`dev`, `prod`):
+
+   ```bash
+   curl --request PUT --header "PRIVATE-TOKEN: <your-access-token>" \
+     --header "Content-Type: application/json" --data '{"process_mode": "oldest_first"}' \
+     "https://<your-gitlab-host>/api/v4/projects/<project-id>/resource_groups/provision-<env>"
+   ```
+
+   The call returns 404 until that environment's first run has created the resource group.

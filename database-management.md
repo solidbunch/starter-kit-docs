@@ -1,27 +1,27 @@
 # Database management
 
-### Upgrading MariaDB version
+`<env>` in the commands below is your environment type: `local`, `dev`, `stage` or `prod`.
 
-`APP_DATABASE_IMAGE` (`config/environment/.env.main`) pins the MariaDB version. The `mariadb` image
-has a **version guard**: if its release series (`major.minor`) differs from the one that last
-upgraded `./db-data`, the server does not start, instead of silently running the new series on old
-data. Patch bumps within a series (a change of only `z` in `x.y.z`) start normally — images built
-from an older Foundation version compared the full `x.y.z`, so make sure the host runs a current
-image (see [Docker Images](docker-images.md)). A fresh, empty `./db-data` is not affected.
+## Upgrading MariaDB version
 
-1. **Back up** — this is your rollback point (downgrading is not supported). Do it while the old
-   version still runs, before the new image reaches the host:
+If you change `APP_DATABASE_IMAGE` (in `config/environment/.env.main`) to a different `major.minor`
+MariaDB version, the `mariadb` container does not start until you upgrade the data in `./db-data`.
+This is the **version guard**: it stops a new version from running on old data by accident. Follow
+the steps below.
+
+No action is needed if you only change the patch number (`z` in `x.y.z`), or if `./db-data` is empty.
+
+1. **Back up** while the old version is still running, before you change `APP_DATABASE_IMAGE`.
+   Downgrading is not supported, so the backup is your only way back.
 
    ```bash
    make export
    ```
 
-   The dump of the site database is written to `./tmp/`. To roll back: run the old image tag and
-   `make import tmp/<dump file>.sql`.
+   The dump of the site database is written to `./tmp/`.
 
-   Optional, for a faster rollback: stop MariaDB and copy the data directory (needs free space
-   equal to `db-data`). To roll back with it: stop MariaDB, put the copy back as `db-data`, set the
-   old image tag, `make recreate <env>`.
+   Optional, for a faster rollback: also copy the data directory. It needs free space equal to the
+   size of `db-data`.
 
    ```bash
    df -h . && du -sh db-data
@@ -29,43 +29,53 @@ image (see [Docker Images](docker-images.md)). A fresh, empty `./db-data` is not
    cp -a db-data db-data.bak-$(date +%F)
    ```
 
-   If the guard has already stopped the container, `make export` is not possible — use the copy.
+   To roll back:
 
-2. **Upgrade** — start once with the flag; the image runs `mariadb-upgrade` itself:
+   - From the copy: stop MariaDB, put the copy back as `db-data`, set the old `APP_DATABASE_IMAGE`,
+     then run `make recreate <env>`.
+   - From the dump: run the old image tag, then `make import tmp/<dump file>.sql`, where
+     `<dump file>` is the file `make export` created.
+
+   If you already changed the image and the container refuses to start, `make export` cannot run.
+   Use the copy, or undo the change by setting the old `APP_DATABASE_IMAGE` back.
+
+2. **Upgrade** — set the new `APP_DATABASE_IMAGE`, then recreate the container with
+   `MARIADB_AUTO_UPGRADE=1`. On start, the image runs `mariadb-upgrade` itself:
 
    ```bash
    MARIADB_AUTO_UPGRADE=1 make recreate <env>
    ```
 
-3. **Verify** — the log shows `Finished mariadb-upgrade`, the container is `healthy`, and the file
-   holds the new version:
+3. **Verify** — the log shows `Finished mariadb-upgrade`, the container is `healthy`, and
+   `db-data/mariadb_upgrade_info` shows the new version:
 
    ```bash
    docker compose logs --tail 50 mariadb
+   docker compose ps mariadb
    cat db-data/mariadb_upgrade_info
    ```
 
-4. **Switch the flag off** — the container keeps the variable it was created with, so recreate
-   without it; otherwise the next version change would upgrade without stopping:
+4. **Switch the flag off** — recreate the container again, without the variable. Otherwise it keeps
+   `MARIADB_AUTO_UPGRADE=1`, the version guard stays off, and the next version change would upgrade
+   your data without stopping first:
 
    ```bash
    make recreate <env>
    ```
 
-#### Collation drift after a MariaDB version bump (optional)
+### Collation drift after a MariaDB version bump (optional)
 
-A MariaDB major-version bump can also change the server's **default collation** (the rule it uses
-to compare/sort text) for any new table created without one explicitly set. WordPress's
-`DB_COLLATE` in `wp-config.php` is driven by `WP_DB_COLLATE` in `.env.secret`. The `.env.secret`
-template sets a value, but check the `WP_DB_COLLATE` line in your own `.env.secret`: if it is empty
-or commented out (for example in a file generated from an older template), WordPress falls back to
-whatever the server picks — which means tables created before the version bump and tables created
-after it can end up on two different collations.
+A MariaDB version bump can change the server's **default collation** (the rule it uses to compare
+and sort text). A table created without an explicit collation gets the new default, so tables
+created before and after the bump can end up on two different collations.
 
-This is **optional, not required** — your site keeps working either way. Pin a collation only if
-you want to eliminate the drift. Pinning `WP_DB_COLLATE` by itself is not enough: existing tables
-keep whatever collation they already have, so you also need to convert them, or you'll get
-`Illegal mix of collations` errors on queries that join an old-collation table with a new one.
+WordPress sets the collation through `WP_DB_COLLATE` in `.env.secret`. New projects get a value from
+the template. If the line in your `.env.secret` is empty or commented out (for example, the file was
+generated from an older template), the choice is left to the server and the drift above can happen.
+
+Your site keeps working either way. Do this only if you want all tables on one collation, or if you
+see `Illegal mix of collations` errors. Setting `WP_DB_COLLATE` alone is not enough, because
+existing tables keep their current collation — you also need to convert them (step 3).
 
 **1. Check what your existing tables are actually using:**
 
@@ -73,118 +83,137 @@ keep whatever collation they already have, so you also need to convert them, or 
 make exec mariadb mariadb -u root -p -e "SELECT TABLE_NAME, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();"
 ```
 
-**2. Decide: keep the existing collation (no drift, no new features) or move to the server's new
-default (future-proof, but needs every table converted).** Check what the server's new default
-actually is:
+When prompted for a password, enter `MYSQL_ROOT_PASSWORD` from `.env.secret`.
+
+**2. Choose the target collation.** Either keep the one most of your tables already use (step 1), or
+switch to the server's current default, which you can see with:
 
 ```bash
 make exec mariadb mariadb -u root -p -e "SHOW VARIABLES LIKE 'collation_server';"
 ```
 
-**3. If you choose to convert, back up first (`make export`), then convert the database default
-and every existing table** — replace `your_collation` with the value from step 1 or 2:
+**3. Back up (`make export`), then convert the database and every table.** Replace
+`your_collation` with the collation you chose in step 2. The commands assume the database is named
+`wordpress` (`MYSQL_DATABASE` in `.env.secret`); adjust it if yours differs.
+
+> ⚠️ Each table is locked while it is rewritten. On large tables this can take a while, so test on
+> staging before running it on production.
 
 ```bash
 make exec mariadb mariadb -u root -p -e "ALTER DATABASE wordpress CHARACTER SET utf8mb4 COLLATE your_collation;"
 ```
 
-Generate and run one `ALTER TABLE` per table (this avoids hand-typing 30+ table names):
+Then convert every table. This generates one `ALTER TABLE` per table and runs it
+(`/tmp/collation_convert.sql` is a temporary file you can delete afterwards):
 
 ```bash
 make exec mariadb mariadb -u root -p -N -e "SELECT CONCAT('ALTER TABLE \`', TABLE_NAME, '\` CONVERT TO CHARACTER SET utf8mb4 COLLATE your_collation;') FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" wordpress > /tmp/collation_convert.sql
 make exec mariadb mariadb -u root -p wordpress < /tmp/collation_convert.sql
 ```
 
-This locks each table briefly while it rewrites it — on a large table this can take a while and
-should be tested on staging first, not run directly against a live production table set.
-
-**4. Set `WP_DB_COLLATE` in `.env.secret` to the same value**, then `make env <env>` and
-`make recreate <env>` so WordPress creates any future table with the same collation.
-
-**5. Verify the site still works** — open the homepage and wp-admin, check
-`logs/wordpress/debug.log` for new errors.
-
-### Local database tunnel
-The `mariadb` service never publishes a host port directly (in either single- or multi-instance mode), so the database is not reachable from the host by default. To connect from an external app (for example [MySQL Workbench](https://www.mysql.com/products/workbench/), [HeidiSQL](https://www.heidisql.com/) or [PHPStorm](https://www.jetbrains.com/help/phpstorm/configuring-ssh-and-ssl.html)), use `make db-tunnel` to spin up an ephemeral `socat` sidecar container on the compose network that forwards `127.0.0.1:<port>` to the `mariadb` container's `3306`.
-
-`make up` must have been run first - the tunnel script errors if the database container isn't running.
-
-1. Start the tunnel:
+**4. Pin the collation for future tables.** Set `WP_DB_COLLATE` in `.env.secret` to the same value,
+then run:
 
 ```bash
-make db-tunnel start
+make env <env>
+make recreate <env>
 ```
 
-The default port is `3306`. To use a different port:
+**5. Verify.** Open the homepage and wp-admin, then check `logs/wordpress/debug.log` for new errors.
 
-```bash
-make db-tunnel start 3307
-```
+## Local database tunnel
 
-2. Check tunnel status:
+The database is not reachable from your machine by default: the `mariadb` service never publishes a
+host port. To connect a database tool (for example
+[MySQL Workbench](https://www.mysql.com/products/workbench/), [HeidiSQL](https://www.heidisql.com/)
+or [PHPStorm](https://www.jetbrains.com/help/phpstorm/configuring-ssh-and-ssl.html)), open a tunnel:
+`make db-tunnel` starts a temporary container that forwards `127.0.0.1:<port>` to MariaDB.
 
-```bash
-make db-tunnel status
-```
+Prerequisite: run `make up` first. The tunnel fails if the database container is not running.
 
-3. Open your database management app and connect to `127.0.0.1:<port>`
+1. Start the tunnel. The default port is `3306`; if it is taken on your machine, pass another one:
 
-4. Stop the tunnel when done:
+   ```bash
+   make db-tunnel start
+   make db-tunnel start 3307
+   ```
 
-```bash
-make db-tunnel stop
-```
+2. Check the tunnel status:
 
+   ```bash
+   make db-tunnel status
+   ```
 
-### phpMyadmin options
-To use phpMyadmin need to run the phpMyadmin container first. It's not running by default.
+3. In your database tool, connect to host `127.0.0.1`, the port from step 1, and the credentials
+   from `.env.secret` (`MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`).
 
-1. Edit the `.env.main` file, find `PMA_EXT_PORT` - make sure that the port is unique. If you are using multiple instances, change the port value.
+4. Stop the tunnel when you are done:
 
+   ```bash
+   make db-tunnel stop
+   ```
 
-2. Run phpMyadmin container:
+## phpMyAdmin
 
-```bash
-make pma
-```
+phpMyAdmin is not running by default. Start its container first.
 
-3. Open the `your-app-domain.com:PMA_EXT_PORT` URL in the browser to access phpMyadmin. For example, we use `PMA_EXT_PORT=8801`. Open `your-app-domain.com:8801`
+1. In `.env.main`, set `PMA_EXT_PORT` to a port that no other service or project on your machine
+   uses. Each installation needs its own value.
 
+2. Start the phpMyAdmin container:
 
-⚠️  **WARNING 📣 Do not use phpMyadmin on public (production or open stage), it's not secure!**
+   ```bash
+   make pma
+   ```
 
-### Reset database root password
-1. In `docker-compose.yml` file uncomment `command: --skip-grant-tables` in mariadb service
-2. Restart containers:
-```bash
-make restart
-```
-3. Enter inside mariadb container:
-```bash
-make exec mariadb
-```
-4. Inside container run:
+3. Open `your-app-domain.com:<PMA_EXT_PORT>` in the browser. For example, with
+   `PMA_EXT_PORT=8801`, open `your-app-domain.com:8801`.
 
-```bash
-mariadb --ssl=OFF
-```
+> ⚠️ Do not run phpMyAdmin on a public server (production or an open stage). It is not secure.
 
-```bash
-FLUSH PRIVILEGES; ALTER USER 'root'@'%' IDENTIFIED BY 'new_password';
-```
-Where 'new_password' - new root password
+## Reset database root password
 
-You can reset another database user password too - just change the username, host, and add new password.
+> ⚠️ While `--skip-grant-tables` is on, anyone who can reach MariaDB can log in without a password.
+> Do steps 1–6 in one go and do not skip step 5.
 
-For example, there are two `root` users in database - with `%` host and with `localhost`. Use this command to see all users:
+1. In the `mariadb` service in `docker-compose.yml`, uncomment `command: --skip-grant-tables`.
 
-```bash
-SELECT User, Host FROM mysql.user;
-```
+2. Restart the containers:
 
-5. Revert back changes in `docker-compose.yml`
+   ```bash
+   make restart
+   ```
 
-6. Restart containers:
-```bash
-make restart
-```
+3. Open a shell in the `mariadb` container:
+
+   ```bash
+   make exec mariadb
+   ```
+
+4. In that shell, start the MariaDB client:
+
+   ```bash
+   mariadb --ssl=OFF
+   ```
+
+   At the client prompt, run the following. Replace `new_password` with the new root password:
+
+   ```sql
+   FLUSH PRIVILEGES; ALTER USER 'root'@'%' IDENTIFIED BY 'new_password';
+   ```
+
+   To reset another user's password, change the user name and host in the `ALTER USER` command.
+   There are two `root` users in the database, one with host `%` and one with host `localhost`. To
+   list all users and hosts, run:
+
+   ```sql
+   SELECT User, Host FROM mysql.user;
+   ```
+
+5. Comment out `command: --skip-grant-tables` in `docker-compose.yml` again.
+
+6. Restart the containers:
+
+   ```bash
+   make restart
+   ```

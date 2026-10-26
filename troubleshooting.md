@@ -125,7 +125,7 @@ If issues persist, you can wipe everything and start clean:
 make docker clean
 ```
 
-⚠️ This runs Docker's own `prune` commands with no project filter — it removes stopped containers, unused images, and unused (Docker-managed) volumes across **your whole machine**, not just this project. The database survives regardless, but not because of project-scoping: `db-data/` is a host bind mount, not a Docker volume, so `docker volume prune` never touches it — same reason it never touches any other bind-mounted directory in this stack. If you run other Docker projects on this machine, be aware this can affect them too.
+> ⚠️ **This affects every Docker project on your machine, not just this one.** `make docker clean` removes all stopped containers, unused images and unused Docker volumes system-wide. Your database is safe: `db-data/` is a folder on your disk, not a Docker volume, so the prune never touches it.
 
 Then re-run the installation:
 
@@ -170,9 +170,9 @@ Delete the empty `web/wp-core/wp-content` directory:
 rm -r web/wp-core/wp-content
 ```
 
-> ⚠️ `rm -r` deletes recursively and will **not** fail or warn if the directory still has files in
-> it — double-check `web/wp-core/wp-content` only holds what Composer put there before running
-> this, since anything else in it is gone without confirmation.
+> ⚠️ `rm -r` deletes everything inside without asking. Before running it, check that
+> `web/wp-core/wp-content` contains only files Composer created, and move anything of your own out
+> first.
 
 
 Run Composer again:
@@ -319,8 +319,9 @@ df -h                     # Overall disk usage
 **Symptom:** after changing `APP_DATABASE_IMAGE`, `make recreate` fails with `dependency failed to
 start: container ... is unhealthy`, `docker ps` shows `mariadb` as `Restarting`, the site is down.
 
-**Cause:** the version guard — the data in `./db-data` was last upgraded by another MariaDB
-release series (`major.minor`; patch bumps do not trigger it). The reason is in the log:
+**Cause:** the `mariadb` image has a version guard. It refuses to start when the data in `./db-data`
+belongs to a different `major.minor` MariaDB version than the image (a patch change does not trigger
+it). Confirm in the log:
 
 ```bash
 docker compose logs --tail 30 mariadb
@@ -335,8 +336,9 @@ docker compose logs --tail 30 mariadb
 **Solution:** upgrade on purpose — [Database management — Upgrading MariaDB version](database-management.md#upgrading-mariadb-version).
 To undo the change instead, set `APP_DATABASE_IMAGE` back.
 
-No `[version-guard]` lines and a healthy `mariadb` after a version change means the host still runs
-an older image — see [Docker Images](docker-images.md).
+If you changed `APP_DATABASE_IMAGE` to a different `major.minor` and `mariadb` starts without any
+`[version-guard]` lines, the old image is still in use and the change has not taken effect — see
+[Docker Images](docker-images.md).
 
 ### Crash recovery failed: Bad magic header in tc log
 

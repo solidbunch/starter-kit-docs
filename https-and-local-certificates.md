@@ -2,7 +2,11 @@
 
 Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.
 
-> 🔀 **Multi-instance mode:** everything below applies when `APP_MULTI_INSTANCE=0` (the default, single-instance NGINX setup). When `APP_MULTI_INSTANCE=1`, TLS is terminated by Traefik instead — `make ssl` just skips (production certs are issued and renewed by Traefik itself, stored in a Docker volume, no host files to manage), and `make local-cert` writes its certificate under `kit-modules/proxy/certs/local/` instead of `config/ssl/live/`. See `kit-modules/proxy/README.md`. `proxy` is a paid kit-module, not included by default — see [Infrastructure](infrastructure.md).
+> 🔀 **Multi-instance mode (`APP_MULTI_INSTANCE=1`):** this page describes the default single-instance setup (`APP_MULTI_INSTANCE=0`). In multi-instance mode the Traefik reverse proxy handles HTTPS:
+> - `make ssl` does nothing. Traefik issues and renews production certificates itself.
+> - `make local-cert` writes the certificate to `kit-modules/proxy/certs/local/` instead of `config/ssl/live/`.
+>
+> Multi-instance mode needs the paid `proxy` kit-module — see [Infrastructure](infrastructure.md) and `kit-modules/proxy/README.md`.
 
 ## Production & Staging
 
@@ -30,7 +34,7 @@ This will:
 
 - Start NGINX (`docker compose up -d nginx`) so it can serve the ACME challenge
 
-- Delete the dummy certificate, then run 🔐 Certbot (`certbot certonly`) using the **webroot** authenticator configured in `config/certbot/cli.ini` (`port 80` must be reachable publicly). For an apex domain (e.g. `example.com`), the cert also covers `www.example.com`; for a subdomain (e.g. `dev.example.com`), only that exact hostname is requested.
+- Delete the dummy certificate, then run 🔐 Certbot (`certbot certonly`) using the **webroot** authenticator configured in `config/certbot/cli.ini` (`port 80` must be reachable publicly). For `example.com` the certificate also covers `www.example.com`; for a subdomain such as `dev.example.com` it covers only that hostname.
 
 - Save certificate files to:
 

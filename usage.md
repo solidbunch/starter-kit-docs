@@ -66,7 +66,9 @@ These commands let you work inside containers — either by starting a clean one
 - `make run <service>` — starts a one-off container with an interactive shell (e.g. Composer or Node). Useful for isolated testing or when the container isn’t running. It rebuilds the image if needed and removes the container afterward.
 - `make exec <service>` — opens a shell inside an already running container (e.g. PHP). Ideal for inspecting running services or executing WP‑CLI commands.
 
-Both commands run as www-data (from .env:DEFAULT_USER) and display a welcome message. The container user runs with the same UID as the host user to avoid permission issues on shared volumes. This only works for services built on the PHP-based images (`php`, `composer`) — the `nginx` image has no `www-data` user and no `bash`, so `make exec nginx` fails; use `make log nginx` to inspect it instead.
+Both commands run as `www-data` (from `DEFAULT_USER` in `.env`) and display a welcome message. The container user runs with the same UID as the host user to avoid permission issues on shared volumes.
+
+> ⚠️ `make run` and `make exec` work only for `php` and `composer`. The `nginx` image has no `www-data` user and no `bash`, so `make exec nginx` fails. Use `make log nginx` instead.
 
 ```bash
 make run php
@@ -92,8 +94,8 @@ Logs are written to the host filesystem:
 |-------------------------------|-----------------------|
 | `logs/nginx/*.log`            | Access and error logs |
 | `logs/wordpress/debug.log`    | WordPress debug       |
-| `logs/wordpress/info.log`     | WordPress info-level log (`APP_INFO_LOG`) |
-| `logs/wordpress/starter-kit.log` | Theme's application logger (Monolog) |
+| `logs/wordpress/info.log`     | WordPress info messages (path set by `APP_INFO_LOG` in `.env.type.*`) |
+| `logs/wordpress/starter-kit.log` | Messages logged by the theme's own code |
 | `logs/wordpress/*XDEBUG*.out` | Xdebug logs           |
 | `logs/letsencrypt/*.log`      | Certbot logs          |
 

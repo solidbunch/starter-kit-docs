@@ -61,10 +61,9 @@ These steps ensure WordPress core receives the required config after dependency 
 ### Core Requirements
 - **PHP**: >=8.4
 - **WordPress Core**: `solidbunch/wordpress-core-no-content`
-- **Kit-Modules** — `basis`, `monitoring-client`, `monitoring-server` (required, licensed — resolve
-  to real code once a valid license is configured; without one, Composer resolves an empty
-  `metapackage` stub instead), plus opt-in `proxy`. Paid add-ons, not included by default — see
-  [Infrastructure](infrastructure.md) for tiers/purchase and
+- **Kit-Modules** — paid add-ons: `basis`, `monitoring-client`, `monitoring-server`, plus optional
+  `proxy`. With a valid license Composer installs the real code; without one it installs an empty
+  stub. See [Infrastructure](infrastructure.md) for tiers and purchase, and
   [Quick start after purchase](quick-start-after-purchase.md) for licensing setup.
 - **WordPress Theme, Addon and Plugins**
 - **Development Dependencies**
@@ -116,7 +115,7 @@ StarterKit uses `solidbunch/wordpress-core-no-content` as the WordPress core sou
 }
 ```
 
-Replace `<version constraint>` with the constraint your project uses (see the `require` block of your own `composer.json`).
+`<version constraint>` stands for the WordPress version range already set in your `composer.json`.
 
 To change or bump the WordPress version, edit the version constraint and run inside the Composer container:
 ```bash
@@ -166,6 +165,9 @@ The theme's own `composer.json` (`web/wp-content/themes/starter-kit-theme/compos
 
 `make lint` runs `composer lint` (PHP) and `npm run lint` (JS) together, both inside the theme
 directory. See [Makefile Reference](makefile-reference.md).
+
+To run `lintfix` or `tests`, open the Composer container (`make run composer`), then
+`cd web/wp-content/themes/<theme>` and run `composer lintfix` or `composer tests`.
 
 ### Post-Installation Scripts
 ```bash

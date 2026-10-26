@@ -25,7 +25,7 @@ It is composed of two main parts:
 - **Rapid setup** – Get a working WordPress site with Docker in minutes.
 - **Modern tooling** – Composer, Node.js, SCSS/JS compilation, and Carbon Fields is included out-of-the-box.
 - **Environment parity** – The same code and containers run locally, on staging, and in production.
-- **Built-in DevOps** – Ready-to-use Terraform and GitHub Actions pipelines handle infrastructure and deployments once you complete the one-time secrets/IAM setup — see [CI/CD Deployments](ci-cd-deployments.md).
+- **Built-in DevOps** – Ready-made Terraform and GitHub Actions pipelines handle infrastructure and deployments. You add your cloud credentials and GitHub secrets once; see [CI/CD Deployments](ci-cd-deployments.md).
 - **Extensibility** – Open-source (MIT) and designed for easy customization.
 
 ## Key Advantages

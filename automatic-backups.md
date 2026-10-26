@@ -1,9 +1,9 @@
 # Automatic backups
-The system has automatic backups. Launched by a cronjob. By default, daily and weekly backups work. With a retention period of 6 and 30 days, respectively. You can customize the frequency and content of backups yourself.
+A cron job runs automatic backups: daily and weekly by default, kept for 6 and 30 days respectively. You can customize the frequency and content yourself.
 
-Backups are enabled by default (`APP_WP_BACKUP_ENABLE=1` in every `config/environment/.env.type.*` file). To adjust:
+Backups are on by default (`APP_WP_BACKUP_ENABLE=1` in every `config/environment/.env.type.*` file). To change this, do any of the following:
 
-1. Edit `./config/environment/.env.type.[environment_type]` file - toggle `APP_WP_BACKUP_ENABLE`
+1. To turn backups off, set `APP_WP_BACKUP_ENABLE=0` in `./config/environment/.env.type.[environment_type]`
 
 
 2. Check crontab file in `./config/cron/crontabs` - change cronjob time if it needs.

@@ -12,7 +12,7 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | `PARAMS`                      | Everything you type **after** the target — `make <target> [params...]` — forwarded to the called script.                     |
 | `PARAM1…PARAM3`               | Shortcuts for the first three extra words — `make <target> [param1] [param2] [param3]`.                                      |
 | `DEFAULT_USER`                | Docker user name read from `.env.main`, in result have `CURRENT_UID` and `CURRENT_GID`, so same IDs as Host user             |
-| `COMPOSE_OVERRIDE`            | Extra `docker compose` flags injected by the `proxy` kit-module (`kit-modules/proxy/bin/compose-flags.sh`) when it's installed, to merge in the multi-instance compose overrides. Resolves to nothing if `proxy` isn't installed. |
+| `COMPOSE_OVERRIDE`            | Extra `docker compose` flags for multi-instance mode, supplied by the `proxy` kit-module. Empty when `proxy` is not installed. |
 
 ---
 
@@ -47,16 +47,16 @@ The **Makefile** is a slim wrapper around a collection of shell scripts and `doc
 | **make basis**                          | `docker compose -f docker-compose.toolkit.yml run --rm -it iac su -c "cd /srv/kit-modules/basis && bash" $(DEFAULT_USER)` | Interactive shell in the IaC container, `cd`'d into `kit-modules/basis` [^kitmodule] |
 | **make tf \<env\> \<command\>**         | `kit-modules/basis/sh/terraform.sh -e $(PARAM1) -c $(PARAM2)` | Run Terraform (`init`, `plan`, `apply`, `destroy`) for an environment [^localci] [^kitmodule] |
 | **make ansible \<env\> \<playbook\> \[static]** | `kit-modules/basis/sh/ansible.sh -e $(PARAM1) -a $(PARAM2)` (adds `-s` if the third word is `static`) | Provision or deploy with Ansible; inventory is generated from Terraform outputs unless `static` is passed [^localci] [^kitmodule] |
-| **make oidc \<env\> gen\|test \[gitlab]** | `kit-modules/basis/sh/aws/oidc.sh -e $(PARAM1) -m $(PARAM2)` (adds `-p gitlab` if the third word is `gitlab`) | AWS OIDC setup for CI: `gen` prints the AWS Console steps and policy (no AWS CLI or credentials needed), `test` verifies a real setup (needs AWS CLI + credentials) — see [CI/CD Deployments](ci-cd-deployments.md) [^kitmodule] |
-| **make docker build\|push \[service\]** | `sh/system/docker.sh $(PARAMS)`                       | Build, push docker images to Registry — `push` asks `Do you want to push <service> image? (y/n)` per image; running it non-interactively (e.g. CI) reads EOF and silently skips every image |
-| **make docker clean\|prune**            | `sh/system/docker.sh $(PARAMS)`                       | Prune all docker containers, images, volumes, networks — unscoped, affects **every** Docker project on the host, not just this one |
+| **make oidc \<env\> gen\|test \[gitlab]** | `kit-modules/basis/sh/aws/oidc.sh -e $(PARAM1) -m $(PARAM2)` (adds `-p gitlab` if the third word is `gitlab`) | AWS OIDC setup for CI: `gen` prints the AWS Console steps and policies for both CI roles, `test` verifies a real setup (needs AWS CLI + credentials) — see [CI/CD Deployments](ci-cd-deployments.md) [^kitmodule] |
+| **make docker build\|push \[service\]** | `sh/system/docker.sh $(PARAMS)`                       | Build, push docker images to Registry — `push` asks `Do you want to push <service> image? (y/n)` for each image. In a non-interactive run (e.g. CI) no answer arrives and every image is skipped without an error |
+| **make docker clean\|prune**            | `sh/system/docker.sh $(PARAMS)`                       | Prune all docker containers, images, volumes, networks — affects **every** Docker project on this machine, not just this one |
 | **make docker-login**                   | `sh/system/docker.sh login`                           | Registry auth only (ghcr.io) — no build/push           |
 | **make monitoring \[on\|off\]**         | `kit-modules/monitoring-client/sh/monitoring.sh -m $(PARAM1)` | Run the monitoring-client scenario (alias: `make mon`) — `on` is a no-op unless `APP_LOKI_ENABLE=1` [^kitmodule] |
 | **make proxy start\|stop\|down\|logs\|deploy \<env\>** | `bash ./kit-modules/proxy/bin/proxy.sh $(PARAMS)` | Reverse proxy for multi-instance mode — requires the solidbunch/proxy kit module; `down` is an alias for `stop`; `deploy <env>` is used by CI [^kitmodule] |
 | **make localci up\|down\|tf\|ansible\|act** | `sh/local-ci/*` (dispatched by the first parameter) | Local CI/CD provisioning emulation harness — `down --force-restore` recovers from a crashed run; see `sh/local-ci/README.md` |
 | **make validate-nginx**                 | `bash ./sh/system/validate-nginx.sh $(PARAMS)`        | Validate nginx config syntax (`nginx -t`) in a throwaway container, no app stack needed |
 
-[^localci]: When `localci` is passed as an additional goal on the same command line (e.g. `make localci up`), this target is a no-op — `localci` runs its own version of the step instead. This is how `make localci up|down|tf|ansible` avoids running the step twice.
+[^localci]: Skipped when you run it through `make localci ...` (for example `make localci up`); `localci` runs its own version of the step instead.
 [^kitmodule]: Requires the corresponding kit-module to be installed. Kit-modules are paid add-ons, not included by default — see [Infrastructure](infrastructure.md).
 
 ---

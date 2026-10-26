@@ -4,7 +4,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 
 ```plaintext
 ├── backups/                  # Daily and weekly WordPress media, and database backups
-├── cache/                    # Build cache (auto-generated, e.g. PHP opcache dir bind-mounted into the php container)
+├── cache/                    # Auto-generated build cache (e.g. PHP opcache)
 ├── config/                   # Global config files
 │   ├── certbot/              # Let's Encrypt configuration for SSL certificates
 │   ├── cron/                 # Cron jobs for scheduled tasks
@@ -14,7 +14,7 @@ StarterKit Foundation is composed of two core layers: the environment (container
 │   └── ssl/                  # SSL certificates and keys
 ├── db-data/                  # Persistent database volume
 ├── dockerfiles/              # Custom Dockerfile definitions
-├── kit-modules/               # Licensed sub-projects, Composer-installed, git-ignored — basis, monitoring-client/server, and proxy are all required packages once a license is configured; proxy just needs APP_MULTI_INSTANCE=1 to actually activate
+├── kit-modules/               # Licensed add-ons, Composer-installed, git-ignored (basis, monitoring-client/server, optional proxy)
 ├── logs/                     # Log files for WordPress, PHP, nginx
 ├── sh/                       # Shell scripts: setup, CLI wrappers, backups
 ├── tests/                    # Automated tests
@@ -58,7 +58,7 @@ These services ensure developers and DevOps engineers have all the tools needed 
 
 **Local CI/CD emulation harness** (`docker-compose.localci.yml`, brought up only by `make localci`):
 
-* **localstack** – emulates AWS S3/DynamoDB/EC2/STS for testing Terraform locally
+* **localstack** – emulates AWS S3/EC2/STS for testing Terraform locally
 * **ansible-target** – disposable target host for testing Ansible playbooks locally
 
 See `sh/local-ci/README.md` for details.

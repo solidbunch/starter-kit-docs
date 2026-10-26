@@ -52,7 +52,7 @@ triggered by describing what you want in plain English). StarterKit ships these:
 | Skill                        | Where                                                                                   | Use it to                                                                                                  |
 |-------------------------------|------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
 | `bootstrap-project`           | `.claude/skills/bootstrap-project/`                                                       | Turn a freshly cloned template into a named, running project — the main entry point, see §3 below.          |
-| `upgrade-foundation`          | `.claude/skills/upgrade-foundation/`                                                      | Update a project built from this template to a newer Foundation version: adds the Foundation remote, diffs against the target tag, applies Foundation-owned files and keeps project-owned config. Run it inside your project, not in Foundation itself. |
+| `upgrade-foundation`          | `.claude/skills/upgrade-foundation/`                                                      | Update your project to a newer Foundation version: diffs against the target tag, applies the files that come from Foundation and keeps your own config. Run it inside your project, not in Foundation itself. |
 | `check-wordpress-docker-image`| `.claude/skills/check-wordpress-docker-image/`                                            | Compare `dockerfiles/php/Dockerfile` with the official `docker-library/wordpress` Dockerfile and check that your PHP version is still supported by your WordPress version. Maintenance skill for the PHP image; leaves changes uncommitted for review. |
 | `create-gutenberg-block`      | `web/wp-content/themes/<theme>/.claude/skills/create-gutenberg-block/`                    | Scaffold a new Gutenberg block following the theme's existing block conventions.                            |
 | `convert-to-classic-theme`    | `web/wp-content/themes/<theme>/.claude/skills/convert-to-classic-theme/`                  | Switch the theme from FSE (Full Site Editing) to classic PHP templates. Keeps Gutenberg/blocks — only the page-assembly mechanism changes; the block editor becomes a per-post-type opt-in. |
@@ -94,16 +94,16 @@ replacing the manual steps in [Installation](installation.md):
    - Ask you (once, batched) for the project slug (`APP_NAME`), title (`APP_TITLE`), and local
      domain (`APP_DOMAIN`) — plus optional dev/stage/prod domains if you already have them.
    - Ask whether to keep the default theme name or rename it (cosmetic rename only — internal PHP
-     namespace/prefixes stay unless you explicitly ask to change those too), and whether to keep
-     the theme in its own separate VCS repo or bundle it into the root repo as a monorepo.
+     namespace/prefixes stay unless you explicitly ask to change those too), and whether the theme
+     stays in its own Git repository or becomes part of the project's root repository.
    - Edit the source env files under `config/environment/` (never the generated `.env`/`.env.runtime`).
    - Run `make secret` and `make env local` to regenerate the derived env files, and show you the
      result to confirm before continuing.
    - Confirm with you, then run `make install` (builds and starts Docker containers — this is the
      one step in the flow that touches your machine's Docker daemon).
    - Rename the theme, if you asked for that, using the theme's own `wp clone-theme` WP-CLI command.
-   - Write the project's own `README.md` (local install steps + a full CI/CD setup section for
-     GitHub Actions/GitLab CI), replacing the template's own marketing README.
+   - Replace the template's `README.md` with one for your project: local install steps and a CI/CD
+     setup section for GitHub Actions and GitLab CI.
    - Refresh `CLAUDE.md` / `.claude/rules/` for the renamed project, if a `project-brief`-style skill
      is available.
    - Report every changed file, split into what it did automatically vs. what's left for you
