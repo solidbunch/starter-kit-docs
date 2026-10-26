@@ -130,7 +130,7 @@ cd scripts && npm test
 # equivalent: node --test
 ```
 
-Five offline test files, no credentials, no network:
+Six offline test files, no credentials, no network:
 
 - `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 19 entries, in order, with
   matching slugs), the `tocTitle`/`line` fields, plus the link-target/file-existence error paths.
@@ -144,8 +144,13 @@ Five offline test files, no credentials, no network:
   (`{blockName, attrs, innerBlocks, innerHTML}`), not markup-string matching.
 - `test/wp.test.mjs` — `syncPage()`'s unchanged-check (including the `title.raw` comparison) and
   its non-empty-title guard, against a stubbed REST client.
+- `test/claims.test.mjs` — `lib/claims.mjs`'s Markdown → claim extraction (`make` at command start,
+  `make exec|run` argument counts, `path`/`relpath`/`var`/`workflow` claims, shortened `.../x/`
+  expansion incl. the verbatim past callout from commit a5b9f2e, negation wording, `context` and
+  exact line numbers) and `parseAllowlist()`'s sections, keys and every parse-error case, all on
+  inline synthetic Markdown.
 
-`npm test` should always report `pass 59, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 108, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
