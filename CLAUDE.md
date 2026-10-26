@@ -17,8 +17,9 @@ copy-pasted into WordPress pages at `starter-kit.loc/docs/`.
 - `_config.yml` — Jekyll config (theme: minima, kramdown), for optional GitHub Pages rendering.
 - `scripts/` — the one deliberate exception to "flat repo, no code": the Markdown → WordPress
   sync script (see `scripts/README.md` and
-  `.claude/plans/architect-plan-docs-sync-script-stage1.md`). Has its own `package.json` and
-  `node_modules/` (gitignored). Not a doc page — never add it to `index.md`'s TOC.
+  `.claude/plans/architect-plan-docs-sync-script-stage1.md`) plus the two pre-commit checkers,
+  `check-title-drift.mjs` and `check-doc-claims.mjs`. Has its own `package.json` and
+  `node_modules/` (gitignored). Not a doc page — `scripts/` stays out of `index.md`'s TOC.
 
 ## Where plans/decisions live
 

@@ -123,6 +123,82 @@ partial content); the run continues with the remaining files. Exit code is non-z
 failed this way, if any `doc-page` publish/draft call failed, or, with `--strict`, if any
 converter warning was emitted.
 
+## Doc claims check
+
+`node check-doc-claims.mjs` (run from `scripts/`) pulls checkable claims out of every root `*.md`
+page and verifies each one against the `starter-kit-foundation` checkout. Only root pages are
+scanned: `CLAUDE.md` and `README.MD` are skipped, directories (`scripts/`, `.claude/`, `.github/`)
+are never entered. It reads the foundation, never writes to it.
+
+**What it checks**
+
+- `make <target>`: the target is defined in the foundation `Makefile`. Found in inline code, fenced
+  code and **bold** text, only at the start of a command (also after `VAR=value ` prefixes), so
+  `sudo apt install make git` and "make sure" are ignored.
+- `make exec` / `make run` argument counts: more than 2 words after the target fails, because
+  `sh/dev/run.sh` reads only `$1..$3` (mode, service, user) and silently drops the rest. If
+  `run.sh` starts reading more arguments the check is skipped with a WARN instead of failing.
+- Repo paths in inline code that start with `kit-modules/`, `sh/`, `config/`, `dockerfiles/`,
+  `.github/` or `.gitlab/`, with placeholders (`<env>`, `{$name}`, `*`, `**`) matched against the
+  tree.
+- Shortened paths (`.../stage/`): expanded from the nearest full path before it (same paragraph,
+  else same section), then checked like any path. With no full path before it, that is a failure.
+- Negated wording ("there is no `.../stage/` directory", "`envs/stage` does not exist"): the check
+  is inverted, so the claim fails when the thing really exists. A relative path with no known
+  prefix (`envs/stage`), or a bare word followed by "directory" / "dir" / "folder" / "file", is
+  checked only in this negated form, by path suffix against the whole foundation tree.
+- Env var names in inline code (`APP_NAME`, `TF_VAR_...`, `APP_DOMAIN=<x>`): found in
+  `config/environment` (not `.env.secret` or `*override*`), `sh/env`, `docker-compose*.yml`,
+  `Makefile`, `dockerfiles`, `.github`, `.gitlab-ci.yml`, `.gitlab`. `*.md` files are never searched.
+- Workflow file names in inline code (`job-deploy.yml`, `docker-compose*.yml`).
+- Coverage: every Makefile target has a `make` mention in a table row of `makefile-reference.md`
+  (a footnote or prose mention does not count).
+
+**What it does not catch**: behaviour, default values or flag meanings; wrong paths in prose
+without backticks; paths inside fenced blocks (they show what a command creates); non-negated
+relative paths with no known prefix (`web/wp-core/`); argument handling of targets other than
+`exec` / `run`; a variable that the foundation mentions only in a comment (it counts as found).
+Those stay with the `make-doc` skill (claim list, running commands, cold read).
+
+**Foundation lookup order**: `FOUNDATION_PATH` (used alone; a relative value resolves against the
+repo root), else `../starter-kit-foundation.loc` next to this checkout, else the same sibling next
+to the main checkout (found via `git rev-parse --git-common-dir`, so git worktrees work). The
+success line names the path and how it was found (`[env]`, `[sibling]`, `[main-checkout-sibling]`).
+A kit-module that is not installed there (`kit-modules/proxy/...`) is skipped with a WARN; an
+unknown module name (a typo) always fails.
+
+**`DOC_CLAIMS_REQUIRE_FOUNDATION=1`** (strict): "foundation not found" and "kit-module not
+installed" become failures. Without it, a missing foundation prints a stderr `WARNING ... claims NOT
+verified` and exits 0, so a contributor without the checkout can still commit. Any other value
+means lenient.
+
+**Allowlist** `doc-claims-allowlist.txt`: one entry per line, `<file> <kind> <value>  # <reason>`
+(the reason is mandatory; for `make-args` the value contains spaces: everything between the kind
+and the `  #`). `<file>` is a doc page (`usage.md`), so an entry suppresses one claim on one page
+only. Kinds: `make`, `make-args`, `path`, `relpath`, `var`, `workflow`, `make-ref`. Two sections:
+
+- `[allowed]`: legitimate non-matches (an external name, a value the user creates). Never real drift.
+- `[known-drift]`: REAL drift in the docs that is not fixed yet. Does not block, but is printed to
+  stderr in a `KNOWN DRIFT` block on every run and counted in the success line. Never use it to hide
+  drift: it must be fixed or reported.
+
+An entry that matches nothing prints `WARN ... entry never matched — remove it`. A malformed
+allowlist exits 1 with `doc-claims-allowlist.txt:<n>: ...`.
+
+**Options**: `--docs-root=<dir>` (default: the repo root), `--allowlist=<file>`,
+`--list-claims[=<file.md>]` (after the normal checks, print one tab-separated line per claim with
+`location kind value status raw`, passing ones included; `unverified` without a foundation; a
+file that is not a scanned page exits 1).
+
+**Exit codes**: `0` all claims verified (known drift, skips and warnings allowed, or the foundation
+is missing in lenient mode); `1` unverified claims, an invalid allowlist or argument, a bad
+`--list-claims` file, or a missing foundation in strict mode.
+
+```bash
+DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs
+DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs --list-claims=usage.md
+```
+
 ## Tests
 
 ```bash
@@ -130,7 +206,7 @@ cd scripts && npm test
 # equivalent: node --test
 ```
 
-Six offline test files, no credentials, no network:
+Seven offline test files, no credentials, no network:
 
 - `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 19 entries, in order, with
   matching slugs), the `tocTitle`/`line` fields, plus the link-target/file-existence error paths.
@@ -149,8 +225,13 @@ Six offline test files, no credentials, no network:
   expansion incl. the verbatim past callout from commit a5b9f2e, negation wording, `context` and
   exact line numbers) and `parseAllowlist()`'s sections, keys and every parse-error case, all on
   inline synthetic Markdown.
+- `test/check-doc-claims.test.mjs` — `lib/foundation.mjs` and the `check-doc-claims.mjs` CLI against
+  a mini foundation and synthetic doc pages built in a temp dir (never the live foundation): the
+  six real past drift cases at exact `file:line`, corrected versions, runtime-created and
+  kit-module rules, placeholder paths, stale `make exec|run` limits, `resolveFoundationPath()`,
+  allowlist / `[known-drift]` behaviour, strict mode and `--list-claims`.
 
-`npm test` should always report `pass 108, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 144, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via

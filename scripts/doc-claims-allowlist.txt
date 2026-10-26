@@ -1,0 +1,11 @@
+# check-doc-claims allowlist. One entry per line: <file> <kind> <value>  # <reason>   (reason mandatory)
+# <file>: doc page relative to the docs root (e.g. usage.md). An entry only matches claims in that file.
+# kinds: make | make-args | path | relpath | var | workflow | make-ref ; <value> must equal the claim's normalized value
+#        (for make-args the value contains spaces: everything between <kind> and "  #" is the value, trimmed).
+# [allowed]      legitimate non-matches (external names, values the user creates). Never real drift.
+# [known-drift]  REAL drift in the current docs not fixed yet. Printed to stderr on every run; must be in the final report.
+
+[allowed]
+usage.md var XDEBUG_TRIGGER  # Xdebug's own trigger parameter (only mentioned in foundation config/php/local.d/xdebug.ini:13 comment), not a foundation variable
+
+[known-drift]
