@@ -68,7 +68,7 @@ These commands let you work inside containers — either by starting a clean one
 
 Both commands run as `www-data` (from `DEFAULT_USER` in `.env`) and display a welcome message. The container user runs with the same UID as the host user to avoid permission issues on shared volumes.
 
-> ⚠️ `make run` and `make exec` work only for `php` and `composer`. The `nginx` image has no `www-data` user and no `bash`, so `make exec nginx` fails. Use `make log nginx` instead.
+> ⚠️ `make exec nginx` fails: the `nginx` image has no `www-data` user and no `bash`. Use `make log nginx` instead.
 
 ```bash
 make run php

@@ -2,11 +2,7 @@
 
 Secure your environment with HTTPS using self-signed certificates for local development or Let’s Encrypt for production.
 
-> 🔀 **Multi-instance mode (`APP_MULTI_INSTANCE=1`):** this page describes the default single-instance setup (`APP_MULTI_INSTANCE=0`). In multi-instance mode the Traefik reverse proxy handles HTTPS:
-> - `make ssl` does nothing. Traefik issues and renews production certificates itself.
-> - `make local-cert` writes the certificate to `kit-modules/proxy/certs/local/` instead of `config/ssl/live/`.
->
-> Multi-instance mode needs the paid `proxy` kit-module — see [Infrastructure](infrastructure.md) and `kit-modules/proxy/README.md`.
+> 🔀 **Multi-instance mode (`APP_MULTI_INSTANCE=1`):** this page describes the default single-instance setup (`APP_MULTI_INSTANCE=0`). In multi-instance mode the Traefik reverse proxy handles HTTPS: `make ssl` does nothing (Traefik issues and renews production certificates itself), and `make local-cert` writes the certificate to `kit-modules/proxy/certs/local/` instead of `config/ssl/live/`. Multi-instance mode needs the paid `proxy` kit-module — see [Infrastructure](infrastructure.md) and `kit-modules/proxy/README.md`.
 
 ## Production & Staging
 

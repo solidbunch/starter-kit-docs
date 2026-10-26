@@ -18,17 +18,9 @@ make basis
 Terraform provisions the cloud infrastructure in three steps. Run them in this order, because each
 step uses the result of the one before:
 
-1. **`state`** — creates the S3 bucket that stores Terraform state (state locking is built into S3, so no lock table is needed).
+1. **`state`** — creates the S3 bucket that stores Terraform state. No lock table is needed.
 2. **`shared`** — creates the network (VPC) and uploads your deploy SSH public key.
 3. **`dev`** or **`prod`** — creates the server (EC2 instance) for that environment.
-
-> Always run `make tf [env] plan` and review the diff before `make tf [env] apply`.
-
-```bash
-make tf state apply
-make tf shared apply
-make tf dev apply      # or: make tf prod apply
-```
 
 Before running Terraform locally, set up two things:
 
@@ -45,6 +37,15 @@ Before running Terraform locally, set up two things:
 
    CI derives this file from the `SSH_KEY` secret itself.
 
+> Always run `make tf <layer> plan` and review the diff before `make tf <layer> apply`, where
+> `<layer>` is `state`, `shared`, `dev` or `prod`.
+
+```bash
+make tf state apply
+make tf shared apply
+make tf dev apply      # or: make tf prod apply
+```
+
 > The GitHub and GitLab provisioning pipelines offer `stage` as an environment choice alongside
 > `dev` and `prod`, but reject it: its Terraform environment exists
 > (`kit-modules/basis/terraform/envs/stage/`), but Ansible has no `stage` host in
@@ -53,18 +54,18 @@ Before running Terraform locally, set up two things:
 
 ### Automate server apps with Ansible
 
-1. Provision the server first (`make tf [env] apply`). Ansible connects to the instance Terraform
+1. Provision the server first (`make tf <env> apply`). Ansible connects to the instance Terraform
    just created.
 2. Generate the inventory from Terraform's outputs:
 
    ```bash
-   make ansible [env] inventory
+   make ansible <env> inventory
    ```
 
 3. Run the playbook:
 
    ```bash
-   make ansible [env] playbook
+   make ansible <env> playbook
    ```
 
 To use a hand-maintained `kit-modules/basis/ansible/inventory.yml` instead, skip step 2 and run
@@ -77,8 +78,8 @@ After that you can run the CI/CD deployment pipelines.
 The `monitoring-client` module forwards container logs to a Loki log server run by
 `monitoring-server`.
 
-1. Set `APP_LOKI_ENABLE=1` in the environment's env file (shipped as `1` for `dev`/`prod`, `0` for
-   `local`).
+1. Set `APP_LOKI_ENABLE=1` in `config/environment/.env.type.<env>` (shipped as `1` for
+   `dev`/`prod`, `0` for `local`).
 2. Turn it on or off (`make mon` works too):
 
    ```bash

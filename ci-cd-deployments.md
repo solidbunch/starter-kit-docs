@@ -81,11 +81,15 @@ Workflow files in `.github/workflows/`:
 | `job-bootstrap-state.yml`        | manual only                         | creates the Terraform state bucket, once per AWS account (Step 4)                                 |
 | `job-provision.yml`              | manual only                         | provisions infrastructure (Terraform + Ansible) for `dev` / `prod`                                |
 
-Do Steps 1–7 in order to get GitHub Actions running. Step 3 creates the two AWS roles whose ARNs
-you paste into the variables from Step 2, Step 4 creates the Terraform state bucket, and Step 5
-(provisioning) needs both. Steps 6 and 8 are optional. You don't need to create anything under
-**Settings → Environments** first: GitHub creates `dev`/`stage`/`prod` automatically the first time
-a workflow uses one.
+**Servers already exist?** Do Steps 1 and 7, and Step 8 if you want it. Steps 2–6 are for
+provisioning new servers on AWS.
+
+**Provisioning new servers?** Do the steps in order, with one loop: Step 3 creates the two AWS
+roles, and you then go back to Step 2 to paste their ARNs before Step 4 creates the Terraform state
+bucket. Step 5 needs both. Steps 6 and 8 are optional.
+
+You don't need to create anything under **Settings → Environments** first: GitHub creates
+`dev`/`stage`/`prod` automatically the first time a workflow uses one.
 
 ### Step 1 — add the required secrets
 
@@ -148,21 +152,21 @@ Go to **Settings → Secrets and variables → Actions → Variables** (repo-lev
 
 | Variable                       | Level | Required?        | Used by              | What it does                                                                                                                      |
 | ------------------------------ | ----- | ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `AWS_ROLE_TO_ASSUME`           | repo  | for provisioning | provision            | ARN of the everyday IAM role that GitHub OIDC assumes to run Terraform/Ansible. Skip it for now: you get the ARN in Step 3        |
-| `AWS_BOOTSTRAP_ROLE_TO_ASSUME` | repo  | for provisioning | state bootstrap only | ARN of the narrower IAM role that creates the Terraform state bucket (Step 4). Skip it for now: you get the ARN in Step 3 |
+| `AWS_ROLE_TO_ASSUME`           | repo  | for provisioning | provision            | ARN of the AWS role that runs Terraform and Ansible (the *everyday provisioning role*). Leave empty until Step 3 gives you the ARN |
+| `AWS_BOOTSTRAP_ROLE_TO_ASSUME` | repo  | for provisioning | state bootstrap only | ARN of the narrower AWS role that only creates the Terraform state bucket (the *bootstrap role*, used in Step 4). Leave empty until Step 3 gives you the ARN |
 
 There's no deploy-target variable to set here — see "Know how the deploy target is resolved"
 above. There's no AWS region variable either — it's read automatically from
 `config/environment/.env.main`.
 
-Optional: `APP_MULTI_INSTANCE` is set per environment, so create the Environments first (Step 8).
+Optional: to set `APP_MULTI_INSTANCE` per server, see Step 8.
 
 ### Step 3 — cloud side: create the AWS roles GitHub will assume
 
-Provisioning authenticates to AWS with OpenID Connect (OIDC), so no long-lived access keys are
-stored as secrets. You create an IAM identity provider and two IAM roles in your AWS account, scoped
-to your GitHub org/repo (the `GITHUB_ORG`/`GITHUB_REPO` values from "Before you start"). GitHub
-Actions then assumes a role for each run and gets temporary credentials:
+Create an IAM identity provider and two IAM roles in your AWS account, so that GitHub can provision
+without stored access keys (this uses OpenID Connect, OIDC). The roles are scoped to your GitHub
+org/repo (the `GITHUB_ORG`/`GITHUB_REPO` values from "Before you start"). Each run assumes a role
+and gets temporary credentials:
 
 - **Everyday provisioning role** (`AWS_ROLE_TO_ASSUME`) — used by every provisioning run. It cannot
   create the Terraform state bucket, by design.
@@ -182,7 +186,9 @@ make oidc dev gen
 
 Run it from the project root after `make install` or `make env <env>` — the script reads the
 generated `.env`. It only prints values and you create the resources in the AWS Console yourself,
-so it needs neither the AWS CLI nor credentials. It prints three steps:
+so it needs neither the AWS CLI nor credentials. In a terminal it pauses after each part: do that
+part, then press Enter. Its output has three parts, labelled STEP 0, 1 and 2 (not the Steps of this
+page):
 
 - **STEP 0 — identity provider** (once per AWS account; skip it if the provider already exists).
   **IAM → Identity providers → Add provider** — Provider type `OpenID Connect`, Provider URL
@@ -190,22 +196,24 @@ so it needs neither the AWS CLI nor credentials. It prints three steps:
 - **STEP 1 — everyday provisioning role** (`ROLE_NAME` in `.env.main`).
   1. **IAM → Roles → Create role → Web identity** — the identity provider and audience from
      STEP 0 and your GitHub org/repo. Skip adding permissions for now.
-  2. Replace the trust policy of the new role with the printed one.
-  3. Create a policy from the printed permissions JSON (read/write on the Terraform state bucket,
-     plus `ec2:*`) and attach it to the role.
-- **STEP 2 — bootstrap role** (`BOOTSTRAP_ROLE_NAME`). The same three sub-steps, with its own printed
+  2. **IAM → Roles → your role → Trust relationships → Edit trust policy** — replace the policy
+     with the printed one.
+  3. **IAM → Policies → Create policy → JSON** — paste the printed permissions JSON (read/write on
+     the Terraform state bucket, plus `ec2:*`). Then attach the policy under **IAM → Roles → your
+     role → Permissions → Attach policies**.
+- **STEP 2 — bootstrap role** (`BOOTSTRAP_ROLE_NAME`). The same three actions, with its own printed
   trust policy (limited to the `main` branch) and permissions JSON (create and configure the state
   bucket).
 
 For each role the script prints the ARN to store, with `<ACCOUNT_ID>` as a placeholder. Replace it
 with your 12-digit AWS account ID (top-right in the AWS Console).
 
-**Go back to Step 2 now and set `AWS_ROLE_TO_ASSUME` and `AWS_BOOTSTRAP_ROLE_TO_ASSUME` to those
-ARNs.**
+**Now go back to this page's Step 2 and set `AWS_ROLE_TO_ASSUME` and
+`AWS_BOOTSTRAP_ROLE_TO_ASSUME` to those ARNs.**
 
-To double-check an existing setup instead of generating a new one (verifies the identity provider
-and both roles: trust-policy scoping and attached policy content, against your real AWS account —
-requires the AWS CLI installed locally and configured with credentials that can read IAM):
+Optional, to verify what you created: this checks the identity provider, both trust policies and
+the attached policies against your real AWS account. It needs the AWS CLI installed locally and
+configured with credentials that can read IAM:
 
 ```bash
 make oidc dev test
@@ -218,22 +226,21 @@ and `prod` if they share an account.
 
 Provisioning expects the S3 bucket that stores Terraform state to exist already; the everyday role
 cannot create it. Create it once per AWS account: repo → **Actions** tab → *Bootstrap Terraform
-State Backend* in the left sidebar → **Run workflow**. The only input is `CONFIRM`: type the AWS
-region exactly as it is set in `TF_VAR_aws_region` in `config/environment/.env.main`. A mismatch
-stops the run before it touches AWS.
+State Backend* in the left sidebar → **Run workflow**, with branch `main` selected (the bootstrap
+role trusts only `main`). The only input is `CONFIRM`: type the AWS region exactly as it is set in
+`TF_VAR_aws_region` in `config/environment/.env.main`. A mismatch stops the run before it touches
+AWS.
 
 ### Step 5 — provision the server(s)
 
 Creates the server (Terraform) and installs required software (Ansible), using the `SSH_KEY`
-secret from Step 1 and the AWS roles from Step 3:
+secret from Step 1, the AWS roles from Step 3 and the state bucket from Step 4:
 
 - **Preferred:** repo → **Actions** tab → *Provision Infrastructure* in the left sidebar →
   **Run workflow**, choosing:
   
-  - `ENVIRONMENT_TYPE`: `dev` or `prod`. `stage` is listed but rejected: its Terraform
-    environment exists (`kit-modules/basis/terraform/envs/stage/`), but Ansible has no `stage` host
-    (`kit-modules/basis/ansible/inventory.yml`), so a server would be created that Ansible cannot
-    configure
+  - `ENVIRONMENT_TYPE`: `dev` or `prod`. `stage` is listed but rejected: Ansible has no `stage`
+    host (details in [Infrastructure](infrastructure.md#setup-infrastructure-with-terraform))
   - `ACTION_TYPE`: `plan` (preview only — always run this first), `apply`, or `destroy` (tears
     infrastructure down, only on purpose)
   - `SKIP_ANSIBLE`: leave unchecked unless you specifically want Terraform-only (no server
@@ -251,7 +258,7 @@ secret from Step 1 and the AWS roles from Step 3:
 
 - **Already have a server?** If you're pointing at server(s) set up outside this project's
   Terraform/Ansible, skip this step entirely — just make sure the public half of the deploy key
-  pair (from "Before you start", step 3) is on the server (e.g. in `~/.ssh/authorized_keys` for the
+  pair (from "Before you start", item 3) is on the server (e.g. in `~/.ssh/authorized_keys` for the
   deploy user) and the required software is installed.
 
 Check the **Actions** tab for logs after any run.
@@ -328,8 +335,10 @@ leave them unset until you have a paid license. For the license itself, see
 which Dependabot cannot version-bump. No action needed.
 
 **Docker image tags.** Dependabot does not update the `APP_*_IMAGE` tags in
-`config/environment/.env.main`; bump them by hand. If a PR changes `APP_DATABASE_IMAGE`, the deploy
-stops when it recreates the containers, until you upgrade the database — see
+`config/environment/.env.main`; bump them by hand. `APP_COMPOSER_IMAGE`, `APP_NODE_IMAGE` and
+`APP_IAC_IMAGE` are also pinned in `.gitlab-ci.yml`; keep both places in sync. If a PR changes
+`APP_DATABASE_IMAGE` to a different `major.minor`, the deploy stops when it recreates the
+containers, until you upgrade the database — see
 [Database management — Upgrading MariaDB version](database-management.md#upgrading-mariadb-version).
 
 ---
@@ -379,6 +388,8 @@ above; the same `APP_DOMAIN` derivation applies on GitLab.
 
 ### Step 2 — run it
 
+Do this once the servers exist. If you still need to create them, do Step 3 first.
+
 - **Dev**: just push to `develop` — the pipeline runs automatically.
 - **Prod**: go to **CI/CD → Pipelines → Run pipeline**, set the ref to `main`. This is the
   GitLab equivalent of GitHub's manual `workflow_dispatch` — a plain `git push` to `main` does
@@ -389,54 +400,69 @@ Check pipeline logs under **CI/CD → Pipelines** after any run.
 
 ### Step 3 — optional: provision servers
 
-Skip this step if your servers already exist. Otherwise, in order:
+Skip this step if your servers already exist. Otherwise, do the parts in order.
 
-1. Set the `GITLAB_*` values in `config/environment/.env.main` (see "Before you start").
-2. Create the AWS identity provider and the two IAM roles (everyday provisioning role and
-   bootstrap role) by following the output of:
+**1. Configure the project.** Set the `GITLAB_*` values in `config/environment/.env.main` (see
+"Before you start").
 
-   ```bash
-   make oidc dev gen gitlab
-   ```
+**2. Create the AWS identity provider and the two IAM roles.** Run this from the project root after
+`make env <env>` (it needs neither the AWS CLI nor credentials; in a terminal it pauses after each
+part, so do that part and press Enter):
 
-   It prints the same STEP 0 / 1 / 2 sequence as in GitHub Actions, Step 3, with the trust policies
-   shaped for GitLab: the identity provider URL is your `GITLAB_HOST`, and the everyday role trusts
-   only the branches in `GITLAB_PROVISION_BRANCHES`. Check the result with
-   `make oidc dev test gitlab`.
+```bash
+make oidc dev gen gitlab
+```
 
-3. Add these in **Settings → CI/CD → Variables**:
+It prints three parts, labelled STEP 0, 1 and 2, with the AWS Console path for every action:
 
-   | Variable                       | Required?        | Environment scope | Notes                                                                                                                                      |
-   | ------------------------------ | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-   | `AWS_ROLE_TO_ASSUME`           | yes              | `dev`, `prod`     | Everyday role ARN. One row per environment; the same ARN can be reused if they share an AWS account                                         |
-   | `AWS_BOOTSTRAP_ROLE_TO_ASSUME` | yes              | `All` (default)   | Bootstrap role ARN. Do not scope it to an environment                                                                                       |
-   | `TFPLAN_PASSPHRASE`            | no               | `All`             | Passphrase that encrypts saved Terraform plans and the state backup taken before a destroy. Without it you get a warning, not a failure     |
-   | `PLAN_ARTIFACT_TOKEN`          | no               | `All`             | Project access token, a fallback for fetching a saved plan when the job token is not allowed to                                             |
+- **STEP 0 — identity provider** (once per AWS account): the provider URL is your `GITLAB_HOST`,
+  the audience is `sts.amazonaws.com`.
+- **STEP 1 — everyday provisioning role** (`GITLAB_ROLE_NAME`): create the role, replace its trust
+  policy with the printed one (it trusts only the branches in `GITLAB_PROVISION_BRANCHES`), then
+  create and attach the printed permissions policy.
+- **STEP 2 — bootstrap role** (`GITLAB_BOOTSTRAP_ROLE_NAME`): the same actions, with a trust policy
+  limited to `main` and a permissions policy that only creates and configures the state bucket.
 
-4. Create the Terraform state bucket (once per AWS account): **CI/CD → Pipelines → Run pipeline**,
-   branch `main`, `PIPELINE_KIND` = `bootstrap-state`, `CONFIRM` = the AWS region exactly as set in
-   `TF_VAR_aws_region` in `config/environment/.env.main`.
+Each role's printed ARN has an `<ACCOUNT_ID>` placeholder: replace it with your 12-digit AWS
+account ID. To verify the result later, run `make oidc dev test gitlab` (needs the AWS CLI and
+credentials that can read IAM).
 
-5. Provision: **CI/CD → Pipelines → Run pipeline**, on a branch listed in
-   `GITLAB_PROVISION_BRANCHES`, with:
+**3. Add the variables** in **Settings → CI/CD → Variables**:
 
-   | Input             | Value                                                                                                                  |
-   | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-   | `PIPELINE_KIND`   | `provision`                                                                                                            |
-   | `ENVIRONMENT_TYPE`| `dev` or `prod` (`stage` is rejected: it has no Ansible host)                                                          |
-   | `ACTION_TYPE`     | `plan` (preview only — always run this first), `apply`, or `destroy`                                                   |
-   | `SKIP_ANSIBLE`    | leave unchecked unless you want Terraform only                                                                         |
-   | `PLAN_JOB_ID`     | optional: the GitLab job ID of an earlier `plan` run, to apply exactly that plan                                       |
-   | `CONFIRM_DESTROY` | for `destroy` only: the same value as `ENVIRONMENT_TYPE`                                                               |
+| Variable                       | Required? | Environment scope | Notes                                                                                                                                  |
+| ------------------------------ | --------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `AWS_ROLE_TO_ASSUME`           | yes       | `All` (default)   | Everyday role ARN. Use one row per environment (`dev`, `prod`) only if an environment uses a different AWS account                     |
+| `AWS_BOOTSTRAP_ROLE_TO_ASSUME` | yes       | `All` (default)   | Bootstrap role ARN. Do not scope it to an environment                                                                                  |
+| `TFPLAN_PASSPHRASE`            | no        | `All`             | Passphrase that encrypts saved Terraform plans and the state backup taken before a destroy. Without it you get a warning, not a failure |
+| `PLAN_ARTIFACT_TOKEN`          | no        | `All`             | Project access token. Set it only if the pipeline cannot download a saved plan from an earlier job with its own job token              |
 
-6. After the first provisioning run of each environment, set its resource group to process runs in
-   order. The pipeline cannot do this itself, and without it two provisioning runs of the same
-   environment can overlap. Call the GitLab API once per environment (`dev`, `prod`):
+**4. Create the Terraform state bucket** (once per AWS account): **CI/CD → Pipelines → Run
+pipeline**, branch `main`, `PIPELINE_KIND` = `bootstrap-state`, `CONFIRM` = the AWS region exactly
+as set in `TF_VAR_aws_region` in `config/environment/.env.main`.
 
-   ```bash
-   curl --request PUT --header "PRIVATE-TOKEN: <your-access-token>" \
-     --header "Content-Type: application/json" --data '{"process_mode": "oldest_first"}' \
-     "https://<your-gitlab-host>/api/v4/projects/<project-id>/resource_groups/provision-<env>"
-   ```
+**5. Provision.** **CI/CD → Pipelines → Run pipeline**, on a branch listed in
+`GITLAB_PROVISION_BRANCHES`, with these inputs:
 
-   The call returns 404 until that environment's first run has created the resource group.
+| Input              | Value                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| `PIPELINE_KIND`    | `provision`                                                                        |
+| `ENVIRONMENT_TYPE` | `dev` or `prod` (`stage` is rejected: it has no Ansible host)                      |
+| `ACTION_TYPE`      | `plan` (preview only — always run this first), `apply`, or `destroy`               |
+| `SKIP_ANSIBLE`     | leave unchecked unless you want Terraform only                                     |
+| `PLAN_JOB_ID`      | optional: the GitLab job ID of an earlier `plan` run, to apply exactly that plan   |
+| `CONFIRM_DESTROY`  | for `destroy` only: the same value as `ENVIRONMENT_TYPE`                           |
+
+**6. Prevent overlapping runs.** Do this once per environment, after its first provisioning run.
+Without it, two provisioning runs of the same environment can overlap. GitLab runs an
+environment's jobs one at a time through a *resource group* named `provision-<env>`; set that group
+to oldest-first order with the GitLab API (`<env>` is `dev` or `prod`):
+
+```bash
+curl --request PUT --header "PRIVATE-TOKEN: <your-access-token>" \
+  --header "Content-Type: application/json" --data '{"process_mode": "oldest_first"}' \
+  "https://<your-gitlab-host>/api/v4/projects/<project-id>/resource_groups/provision-<env>"
+```
+
+`<your-access-token>` is a personal or project access token with the `api` scope; `<project-id>` is
+shown under **Settings → General**. A 404 means that environment has not run yet: run it once, then
+retry.

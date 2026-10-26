@@ -12,7 +12,7 @@ make docker push
 ```
 
 The `mariadb` image includes a version guard: it refuses to start when the data in `db-data/` belongs
-to a different `major.minor` MariaDB version. Before you change the MariaDB version, check that your
+to a different `major.minor` MariaDB version, or has no `mariadb_upgrade_info` file. Before you change the MariaDB version, check that your
 running container has the guard:
 
 ```bash

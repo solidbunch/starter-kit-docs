@@ -29,15 +29,7 @@ No action is needed if you only change the patch number (`z` in `x.y.z`), or if 
    cp -a db-data db-data.bak-$(date +%F)
    ```
 
-   To roll back:
-
-   - From the copy: stop MariaDB, put the copy back as `db-data`, set the old `APP_DATABASE_IMAGE`,
-     then run `make recreate <env>`.
-   - From the dump: run the old image tag, then `make import tmp/<dump file>.sql`, where
-     `<dump file>` is the file `make export` created.
-
-   If you already changed the image and the container refuses to start, `make export` cannot run.
-   Use the copy, or undo the change by setting the old `APP_DATABASE_IMAGE` back.
+   If the upgrade goes wrong, see [Rolling back](#rolling-back) below.
 
 2. **Upgrade** — set the new `APP_DATABASE_IMAGE`, then recreate the container with
    `MARIADB_AUTO_UPGRADE=1`. On start, the image runs `mariadb-upgrade` itself:
@@ -63,6 +55,21 @@ No action is needed if you only change the patch number (`z` in `x.y.z`), or if 
    make recreate <env>
    ```
 
+### Rolling back
+
+Use this only if the upgrade failed or you need the old version back. Downgrading in place is not
+supported, so restore your backup:
+
+- **From the data-directory copy:** stop MariaDB, put the copy back as `db-data`, set the old
+  `APP_DATABASE_IMAGE`, then run `make recreate <env>`.
+- **From the dump:** set the old `APP_DATABASE_IMAGE`, move the current `db-data` aside so MariaDB
+  starts on an empty directory, run `make recreate <env>`, then
+  `make import tmp/<dump file>.sql` (`<dump file>` is the file `make export` created).
+
+If you changed `APP_DATABASE_IMAGE` and the container refuses to start before you ran the upgrade,
+your data is untouched. Set the old `APP_DATABASE_IMAGE` back and run `make recreate <env>`.
+`make export` cannot run while the container is down.
+
 ### Collation drift after a MariaDB version bump (optional)
 
 A MariaDB version bump can change the server's **default collation** (the rule it uses to compare
@@ -75,44 +82,54 @@ generated from an older template), the choice is left to the server and the drif
 
 Your site keeps working either way. Do this only if you want all tables on one collation, or if you
 see `Illegal mix of collations` errors. Setting `WP_DB_COLLATE` alone is not enough, because
-existing tables keep their current collation — you also need to convert them (step 3).
+existing tables keep their current collation — you also need to convert them (collation step 3
+below).
+
+Run the commands below inside the database container. Open a shell once and keep it open:
+
+```bash
+make exec mariadb
+```
+
+Each `mariadb -u root -p` command asks for a password: enter `MYSQL_ROOT_PASSWORD` from
+`.env.secret`. The commands assume the database is named `wordpress` (`MYSQL_DATABASE` in
+`.env.secret`); adjust it if yours differs.
 
 **1. Check what your existing tables are actually using:**
 
 ```bash
-make exec mariadb mariadb -u root -p -e "SELECT TABLE_NAME, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();"
+mariadb -u root -p wordpress -e "SELECT TABLE_NAME, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();"
 ```
-
-When prompted for a password, enter `MYSQL_ROOT_PASSWORD` from `.env.secret`.
 
 **2. Choose the target collation.** Either keep the one most of your tables already use (step 1), or
 switch to the server's current default, which you can see with:
 
 ```bash
-make exec mariadb mariadb -u root -p -e "SHOW VARIABLES LIKE 'collation_server';"
+mariadb -u root -p -e "SHOW VARIABLES LIKE 'collation_server';"
 ```
 
-**3. Back up (`make export`), then convert the database and every table.** Replace
-`your_collation` with the collation you chose in step 2. The commands assume the database is named
-`wordpress` (`MYSQL_DATABASE` in `.env.secret`); adjust it if yours differs.
+**3. Back up, then convert the database and every table.** Run `make export` first, in another
+terminal on your host (not inside the container shell).
 
 > ⚠️ Each table is locked while it is rewritten. On large tables this can take a while, so test on
 > staging before running it on production.
 
+Replace `your_collation` with the collation you chose in step 2:
+
 ```bash
-make exec mariadb mariadb -u root -p -e "ALTER DATABASE wordpress CHARACTER SET utf8mb4 COLLATE your_collation;"
+mariadb -u root -p -e "ALTER DATABASE wordpress CHARACTER SET utf8mb4 COLLATE your_collation;"
 ```
 
 Then convert every table. This generates one `ALTER TABLE` per table and runs it
-(`/tmp/collation_convert.sql` is a temporary file you can delete afterwards):
+(`/tmp/collation_convert.sql` is a temporary file inside the container):
 
 ```bash
-make exec mariadb mariadb -u root -p -N -e "SELECT CONCAT('ALTER TABLE \`', TABLE_NAME, '\` CONVERT TO CHARACTER SET utf8mb4 COLLATE your_collation;') FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" wordpress > /tmp/collation_convert.sql
-make exec mariadb mariadb -u root -p wordpress < /tmp/collation_convert.sql
+mariadb -u root -p -N -e "SELECT CONCAT('ALTER TABLE \`', TABLE_NAME, '\` CONVERT TO CHARACTER SET utf8mb4 COLLATE your_collation;') FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" wordpress > /tmp/collation_convert.sql
+mariadb -u root -p wordpress < /tmp/collation_convert.sql
 ```
 
-**4. Pin the collation for future tables.** Set `WP_DB_COLLATE` in `.env.secret` to the same value,
-then run:
+**4. Pin the collation for future tables.** Leave the container shell (`exit`), set
+`WP_DB_COLLATE` in `.env.secret` on your host to the same value, then run:
 
 ```bash
 make env <env>

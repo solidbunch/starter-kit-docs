@@ -125,7 +125,7 @@ If issues persist, you can wipe everything and start clean:
 make docker clean
 ```
 
-> ⚠️ **This affects every Docker project on your machine, not just this one.** `make docker clean` removes all stopped containers, unused images and unused Docker volumes system-wide. Your database is safe: `db-data/` is a folder on your disk, not a Docker volume, so the prune never touches it.
+> ⚠️ **This affects every Docker project on your machine, not just this one.** `make docker clean` removes all stopped containers, unused images, volumes, networks and build cache system-wide. Your database is safe: `db-data/` is a folder on your disk, not a Docker volume, so the prune never touches it.
 
 Then re-run the installation:
 
@@ -320,8 +320,8 @@ df -h                     # Overall disk usage
 start: container ... is unhealthy`, `docker ps` shows `mariadb` as `Restarting`, the site is down.
 
 **Cause:** the `mariadb` image has a version guard. It refuses to start when the data in `./db-data`
-belongs to a different `major.minor` MariaDB version than the image (a patch change does not trigger
-it). Confirm in the log:
+belongs to a different `major.minor` MariaDB version than the image, or has no
+`mariadb_upgrade_info` file (a patch change does not trigger it). Confirm in the log:
 
 ```bash
 docker compose logs --tail 30 mariadb
@@ -337,8 +337,8 @@ docker compose logs --tail 30 mariadb
 To undo the change instead, set `APP_DATABASE_IMAGE` back.
 
 If you changed `APP_DATABASE_IMAGE` to a different `major.minor` and `mariadb` starts without any
-`[version-guard]` lines, the old image is still in use and the change has not taken effect — see
-[Docker Images](docker-images.md).
+`[version-guard]` lines, check three things: the running image is the new one (see
+[Docker Images](docker-images.md)), `MARIADB_AUTO_UPGRADE` is not set, and `db-data` is not empty.
 
 ### Crash recovery failed: Bad magic header in tc log
 
