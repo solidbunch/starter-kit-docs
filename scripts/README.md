@@ -224,7 +224,7 @@ cd scripts && npm test
 # equivalent: node --test
 ```
 
-Seven offline test files, no credentials, no network:
+Eight offline test files, no credentials, no network:
 
 - `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 19 entries, in order, with
   matching slugs), the `tocTitle`/`line` fields, plus the link-target/file-existence error paths.
@@ -249,8 +249,14 @@ Seven offline test files, no credentials, no network:
   kit-module rules, placeholder paths, stale `make exec|run` limits, `resolveFoundationPath()`,
   allowlist / `[known-drift]` behaviour, strict mode, `--list-claims` and `--write-audit-list`
   (columns, directory creation, overwrite, rejected values, lenient mode, zero-claim page).
+- `test/make-doc-skill.test.mjs` — placeholder guard for `.claude/skills/make-doc/SKILL.md`. The
+  skill harness substitutes argument placeholders into skill text, which corrupted prose in a trial
+  run. Convention: the full-arguments token occurs exactly once, on the line
+  `**Arguments:** <token>`, and the positional digit tokens (a dollar sign followed by a digit,
+  braced or not) are forbidden everywhere; describe arguments in words, the backslash escape is not
+  used. A failure names the offending line numbers. Covers `make-doc` only.
 
-`npm test` should always report `pass 152, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 154, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
