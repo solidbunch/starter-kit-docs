@@ -20,8 +20,8 @@ philosophy wholesale.
 
 **Arguments:** $ARGUMENTS
 
-- If `$ARGUMENTS` is empty or unexpanded but the user wrote a request in chat, the chat request
-  IS the argument.
+- If the argument text above is empty or still shows its placeholder (the harness did not
+  substitute it) but the user wrote a request in chat, the chat request IS the argument.
 - No argument and no request text at all → full sweep: every file listed in `index.md` gets verified.
 - An argument → scoped run. The argument is free-form natural language, not a required filename —
   "update the CI/CD doc", "обнови доку по CI/CD", "check the makefile reference", "makefile-
@@ -32,9 +32,9 @@ philosophy wholesale.
   file, several, or a whole area). Still read the actual code for them with the same rigor as a full run — a
   scoped run is narrower, not shallower.
 - A request phrased around changes ("update docs from the latest commits", "the Makefile
-  changed, update the docs") is a **scoped run whose areas are picked from the foundation log**
-  (Process, "Picking areas from a change-phrased request"). The log only decides which areas to
-  start with; every doc of a picked area is still verified claim by claim in full. The run then
+  changed, update the docs") is a **scoped run whose areas are picked from the verification markers and the
+  foundation log** (Process, "Picking areas from a change-phrased request"). The markers and the
+  log only decide which areas to start with; every doc of a picked area is still verified claim by claim in full. The run then
   stops and reports what it did not examine. It never silently becomes a full sweep and never
   silently skips areas.
 - If the argument is genuinely ambiguous or doesn't match anything in `index.md`, say what you
@@ -108,28 +108,43 @@ e. Then pick the areas (below).
 
 ### Picking areas from a change-phrased request
 
+A commit date is not proof that docs were verified: one docs commit that touches one page says
+nothing about the other pages, and this repo's docs fell behind the code exactly that way. The
+anchor is therefore an explicit marker file, `scripts/doc-audit-verified.txt`, that records for
+each area the foundation commit its docs were last **fully verified** against (format: the
+file's header comment). The area keys are `root-repo`, `kit-modules`, `theme`, `ci-cd` and
+`root-docs`, one per row of the Ground-truth table, top to bottom.
+
 For a request like "update docs from the latest commits" (a scoped run, see "Scope"):
 
-1. Find the date of the newest docs-repo commit that touched a doc **page** (not tooling):
-   `git log -1 --format=%cI -- ':(glob)*.md' ':(exclude)CLAUDE.md'`
-2. List the foundation commits newer than that, with the files they changed:
-   `git -C <foundation path> log --since=<that date> --name-only --format='%h %s'`
-   This recipe does not see commits that are unmerged, uncommitted or on other branches of the
-   foundation.
-3. Map the changed files to Areas with the Ground-truth table. Changed files that map to no Area
-   row (the addon plugin, `.claude/`, anything else) are ignored for area selection but listed in
-   the report as "unmapped changes".
-4. If the foundation log is **empty**: report "no foundation commits since <date>", state which
-   docs were therefore not examined, and stop. Never fall back to a full sweep silently; offer a
-   full sweep or a named area instead.
-5. Otherwise process the picked areas, each as described below (every doc of the area verified
-   claim by claim, never from the diff). Then **stop** and report which areas/docs were not
-   examined, and offer to continue with them. Do not silently skip them and do not silently run
-   a full sweep.
+1. Read `scripts/doc-audit-verified.txt`.
+2. Read the foundation head with `git -C <foundation path> rev-parse HEAD` and keep it as the
+   area's verification sha. Also run `git -C <foundation path> status --porcelain`: uncommitted
+   foundation changes are not covered by the log; report them as "uncommitted foundation
+   changes".
+3. For each area:
+   - **No marker line** → the area was never audited.
+   - **Marker sha not in the foundation history** (`git -C <foundation path> cat-file -e
+     <sha>^{commit}` fails, e.g. history was rewritten) → treat it as never audited.
+   - **Otherwise** list what changed since the marker:
+     `git -C <foundation path> log <sha>..HEAD --name-only --format='%h %s'`. The area is due if
+     a changed file maps to it through the Ground-truth table paths. Changed files that map to
+     no area row (the addon plugin, `.claude/`, anything else) are ignored for selection but
+     listed in the report as "unmapped changes".
+4. Process every area that is due because of changes, each as described below: every doc of the
+   area verified claim by claim, never from the diff.
+5. Never-audited areas are expensive. Do not start them silently: list them and ask the user
+   which one to start with (an "ask the user" point).
+6. If no area is due and none is never-audited, report "all areas verified up to <sha>; nothing
+   to do" and stop. That is the only case in which an empty result means "nothing to do".
+7. Then **stop** and report which areas were not examined, and offer to continue with them. Do not
+   silently skip them and do not silently run a full sweep.
 
-Using the log to pick areas does not conflict with the rule below that claims are never derived
-from `git diff`/`git log`: the log picks the order of areas, it never defines what is verified.
-Steps 5-6 (placeholders, index sync) apply in a scoped run too.
+After an area is delivered, its marker line is updated (step 10).
+
+Using the markers and the log to pick areas does not conflict with the rule below that claims are
+never derived from `git diff`/`git log`: they pick the order of areas, they never define what is
+verified. Steps 5-6 (placeholders, index sync) apply in a scoped run too.
 
 ### 1. Inventory per document, never per diff
 
@@ -221,8 +236,8 @@ how the starter kit "usually" works. For each claim in the list:
   citation for something the doc currently claims, that's a signal it's stale — verify by
   searching (`grep -r`) before deleting, don't assume absence from one file means it's gone.
 - For every documented command, read the target script's **argument parsing**. Example: `make
-  exec` runs `sh/dev/run.sh`, which reads only `$1..$3` (mode, service, user), so extra words are
-  silently dropped. The checker flags only this `make exec|run` case (kind `make-args`); every
+  exec` runs `sh/dev/run.sh`, which reads only its first three arguments (mode, service, user), so
+  extra words are silently dropped. The checker flags only this `make exec|run` case (kind `make-args`); every
   other target is on you.
 - Parallelism is allowed. `Explore` agents only locate code, so use `general-purpose` agents for
   claim-vs-code verification: one per doc (or per area), told to read the code and return "doc
@@ -461,11 +476,15 @@ Then deliver it:
   allowlist change), made with the project's `commit` skill (Skill tool `commit`), never `--no-verify`, never
   pushed.
 - If an area ends with no changed doc, make no commit and say so in the report.
+- **Record the verification.** Set the area's line in `scripts/doc-audit-verified.txt` to
+  `<area-key> <foundation sha> <YYYY-MM-DD>`, using the foundation head you read at the start of
+  the area (never a later one). Do this only when every box above is true; never for an area that
+  is blocked, partly verified or "blocked at step 9". The marker change belongs to the area's
+  change set (the same commit when committing) and is listed in the report.
 
 Then start the next in-scope area. The only places where you wait for the user are the "ask the
-user" points: an ambiguous argument, an empty foundation log (offer a full sweep or a named
-area), a failure outside the current area, a new file, an allowlist entry, an unknown foundation
-path.
+user" points: an ambiguous argument, which never-audited area to start with, a failure outside
+the current area, a new file, an allowlist entry, an unknown foundation path.
 
 ## House style (already established in this repo — follow it, don't replace it)
 

@@ -1,0 +1,5 @@
+# Foundation commit each doc area was last FULLY verified against (read by the make-doc skill,
+# not by any script). One line per area: <area-key> <foundation-sha> <YYYY-MM-DD>  # optional note
+# Area keys (rows of the make-doc Ground-truth table): root-repo, kit-modules, theme, ci-cd, root-docs
+# An area with no line, or whose sha is not in the foundation history, counts as never audited.
+# Update a line only when the whole area was verified claim by claim and delivered (make-doc step 10).

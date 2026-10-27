@@ -204,6 +204,12 @@ DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs
 DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs --list-claims=usage.md
 ```
 
+**Verification markers** `doc-audit-verified.txt`: read by the `make-doc` skill, not by any script
+here. One line per doc area, `<area-key> <foundation-sha> <YYYY-MM-DD>`, recording the foundation
+commit the area's docs were last fully verified against. The skill uses it to decide which areas
+a request like "update docs from the latest commits" must cover; an area without a line is
+treated as never audited.
+
 ## Tests
 
 ```bash
