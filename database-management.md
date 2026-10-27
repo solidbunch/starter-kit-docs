@@ -1,6 +1,8 @@
 # Database management
 
-`<env>` in the commands below is your environment type: `local`, `dev`, `stage` or `prod`.
+Run the commands on this page from the root of your project (the folder with the `Makefile` and
+`docker-compose.yml`). `<env>` is your environment type (`local`, `dev`, `stage` or `prod`), the
+same value you pass to `make up`. `.env.main` and `.env.secret` are in `config/environment/`.
 
 ## Upgrading MariaDB version
 
@@ -18,10 +20,12 @@ No action is needed if you only change the patch number (`z` in `x.y.z`), or if 
    make export
    ```
 
-   The dump of the site database is written to `./tmp/`.
+   `make export` needs the database container running. It writes the dump of the site database to
+   `./tmp/`; the file name starts with your `APP_NAME`.
 
    Optional, for a faster rollback: also copy the data directory. It needs free space equal to the
-   size of `db-data`.
+   size of `db-data`. Stopping MariaDB takes the site's database offline until step 2 starts it
+   again.
 
    ```bash
    df -h . && du -sh db-data
@@ -60,11 +64,14 @@ No action is needed if you only change the patch number (`z` in `x.y.z`), or if 
 Use this only if the upgrade failed or you need the old version back. Downgrading in place is not
 supported, so restore your backup:
 
-- **From the data-directory copy:** stop MariaDB, put the copy back as `db-data`, set the old
-  `APP_DATABASE_IMAGE`, then run `make recreate <env>`.
-- **From the dump:** set the old `APP_DATABASE_IMAGE`, move the current `db-data` aside so MariaDB
-  starts on an empty directory, run `make recreate <env>`, then
-  `make import tmp/<dump file>.sql` (`<dump file>` is the file `make export` created).
+- **From the data-directory copy:** stop MariaDB (`docker compose stop mariadb`), put the copy back
+  as `db-data`, set the old `APP_DATABASE_IMAGE`, then run `make recreate <env>`.
+- **From the dump:** set the old `APP_DATABASE_IMAGE`, stop MariaDB and move the current `db-data`
+  aside (for example `mv db-data db-data.old`) so MariaDB starts on an empty directory, run
+  `make recreate <env>`, then
+  `make import tmp/<dump file>.sql` (`<dump file>` is the file `make export` created). `make import`
+  asks `Are you sure? (y/n)` and then runs a URL search-replace in the `php` container, so `php`
+  must be running.
 
 If you changed `APP_DATABASE_IMAGE` and the container refuses to start before you ran the upgrade,
 your data is untouched. Set the old `APP_DATABASE_IMAGE` back and run `make recreate <env>`.
@@ -78,7 +85,9 @@ created before and after the bump can end up on two different collations.
 
 WordPress sets the collation through `WP_DB_COLLATE` in `.env.secret`. New projects get a value from
 the template. If the line in your `.env.secret` is empty or commented out (for example, the file was
-generated from an older template), the choice is left to the server and the drift above can happen.
+generated from an older template), WordPress uses its own default (`utf8mb4_unicode_520_ci`) for
+the tables it creates, while tables that plugins create without an explicit collation get the server
+default. Tables can then end up on different collations.
 
 Your site keeps working either way. Do this only if you want all tables on one collation, or if you
 see `Illegal mix of collations` errors. Setting `WP_DB_COLLATE` alone is not enough, because
@@ -92,7 +101,7 @@ make exec mariadb
 ```
 
 Each `mariadb -u root -p` command asks for a password: enter `MYSQL_ROOT_PASSWORD` from
-`.env.secret`. The commands assume the database is named `wordpress` (`MYSQL_DATABASE` in
+`.env.secret` (for example, find it with `grep MYSQL_ROOT_PASSWORD config/environment/.env.secret`). The commands assume the database is named `wordpress` (`MYSQL_DATABASE` in
 `.env.secret`); adjust it if yours differs.
 
 **1. Check what your existing tables are actually using:**
@@ -129,14 +138,16 @@ mariadb -u root -p wordpress < /tmp/collation_convert.sql
 ```
 
 **4. Pin the collation for future tables.** Leave the container shell (`exit`), set
-`WP_DB_COLLATE` in `.env.secret` on your host to the same value, then run:
+`WP_DB_COLLATE` in `.env.secret` on your host to the same value (uncomment the line if it is
+commented out), then run:
 
 ```bash
 make env <env>
 make recreate <env>
 ```
 
-**5. Verify.** Open the homepage and wp-admin, then check `logs/wordpress/debug.log` for new errors.
+**5. Verify.** Open the homepage and wp-admin, then check `logs/wordpress/debug.log` for new errors
+(local and dev; on stage and prod WordPress logs to the container log: `docker compose logs php`).
 
 ## Local database tunnel
 
@@ -144,9 +155,9 @@ The database is not reachable from your machine by default: the `mariadb` servic
 host port. To connect a database tool (for example
 [MySQL Workbench](https://www.mysql.com/products/workbench/), [HeidiSQL](https://www.heidisql.com/)
 or [PHPStorm](https://www.jetbrains.com/help/phpstorm/configuring-ssh-and-ssl.html)), open a tunnel:
-`make db-tunnel` starts a temporary container that forwards `127.0.0.1:<port>` to MariaDB.
+`make db-tunnel start` starts a temporary container that forwards `127.0.0.1:<port>` to MariaDB.
 
-Prerequisite: run `make up` first. The tunnel fails if the database container is not running.
+Prerequisite: run `make up` first. The tunnel script fails if the database container does not exist.
 
 1. Start the tunnel. The default port is `3306`; if it is taken on your machine, pass another one:
 
@@ -161,7 +172,8 @@ Prerequisite: run `make up` first. The tunnel fails if the database container is
    make db-tunnel status
    ```
 
-3. In your database tool, connect to host `127.0.0.1`, the port from step 1, and the credentials
+3. In your database tool, connect to host `127.0.0.1`, the port you chose in step 1 (3306 by
+   default), and the credentials
    from `.env.secret` (`MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`).
 
 4. Stop the tunnel when you are done:
@@ -183,6 +195,9 @@ phpMyAdmin is not running by default. Start its container first.
    make pma
    ```
 
+   It runs in the foreground (press Ctrl+C to stop it) and needs the application stack to be
+   running (`make up`).
+
 3. Open `your-app-domain.com:<PMA_EXT_PORT>` in the browser. For example, with
    `PMA_EXT_PORT=8801`, open `your-app-domain.com:8801`.
 
@@ -195,10 +210,10 @@ phpMyAdmin is not running by default. Start its container first.
 
 1. In the `mariadb` service in `docker-compose.yml`, uncomment `command: --skip-grant-tables`.
 
-2. Restart the containers:
+2. Recreate the containers so the new `command` is applied (a plain restart keeps the old one):
 
    ```bash
-   make restart
+   make recreate <env>
    ```
 
 3. Open a shell in the `mariadb` container:
@@ -216,11 +231,12 @@ phpMyAdmin is not running by default. Start its container first.
    At the client prompt, run the following. Replace `new_password` with the new root password:
 
    ```sql
-   FLUSH PRIVILEGES; ALTER USER 'root'@'%' IDENTIFIED BY 'new_password';
+   FLUSH PRIVILEGES; ALTER USER 'root'@'%' IDENTIFIED BY 'new_password'; ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
    ```
 
-   To reset another user's password, change the user name and host in the `ALTER USER` command.
-   There are two `root` users in the database, one with host `%` and one with host `localhost`. To
+   There are two `root` users in the database, one with host `%` and one with host `localhost`, so
+   the command resets both (`mariadb -u root -p` inside the container connects as `root@localhost`).
+   To reset another user's password, change the user name and host in the `ALTER USER` command. To
    list all users and hosts, run:
 
    ```sql
@@ -229,8 +245,11 @@ phpMyAdmin is not running by default. Start its container first.
 
 5. Comment out `command: --skip-grant-tables` in `docker-compose.yml` again.
 
-6. Restart the containers:
+6. Recreate the containers again, so the original `command` comes back:
 
    ```bash
-   make restart
+   make recreate <env>
    ```
+
+Afterwards set `MYSQL_ROOT_PASSWORD` in `config/environment/.env.secret` to the new password:
+phpMyAdmin logs in as root with it.
