@@ -159,11 +159,15 @@ are never entered. It reads the foundation, never writes to it.
 - Coverage: every Makefile target has a `make` mention in a table row of `makefile-reference.md`
   (a footnote or prose mention does not count).
 
-**What it does not catch**: behaviour, default values or flag meanings; wrong paths in prose
-without backticks; paths inside fenced blocks (they show what a command creates); non-negated
+**What it does not catch**: the checker verifies existence only (a target, path, variable or file is
+there), not behaviour (what a command does, which value wins, whether a restart applies config). The
+real errors of the MariaDB trial run were all behavioural. In detail: default values or flag
+meanings; wrong paths in prose without backticks; paths inside fenced blocks (they show what a command creates); non-negated
 relative paths with no known prefix (`web/wp-core/`); argument handling of targets other than
 `exec` / `run`; a variable that the foundation mentions only in a comment (it counts as found).
-Those stay with the `make-doc` skill (claim list, running commands, cold read).
+Those stay with the `make-doc` skill (claim list, running commands, cold read). Its "Verified test
+recipes" section has self-cleaning Docker scripts for behaviour checks, and its "Known pitfalls"
+section lists the behavioural mistakes already seen, with the code lines to read.
 
 **Foundation lookup order**: `FOUNDATION_PATH` (used alone; a relative value resolves against the
 repo root), else `../starter-kit-foundation.loc` next to this checkout, else the same sibling next
