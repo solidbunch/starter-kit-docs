@@ -193,15 +193,22 @@ allowlist exits 1 with `doc-claims-allowlist.txt:<n>: ...`.
 **Options**: `--docs-root=<dir>` (default: the repo root), `--allowlist=<file>`,
 `--list-claims[=<file.md>]` (after the normal checks, print one tab-separated line per claim with
 `location kind value status raw`, passing ones included; `unverified` without a foundation; a
-file that is not a scanned page exits 1).
+file that is not a scanned page exits 1), `--write-audit-list=<file.md>` (write that page's claims as
+a `make-doc` audit table, columns `doc:line | claim | checker | ground truth path:line | audit status |
+notes`, to `<docs-root>/.claude/doc-audit/<page>.claims.md`; the directory is created and the file
+overwritten on every run; it is written even when the run exits 1, `unverified` rows without a
+foundation in lenient mode, nothing in strict mode without one; prints `wrote <path> (<n> claims)`;
+a bare or empty flag, or a file that is not a scanned page, exits 1 and writes nothing). It combines
+with `--list-claims`.
 
 **Exit codes**: `0` all claims verified (known drift, skips and warnings allowed, or the foundation
 is missing in lenient mode); `1` unverified claims, an invalid allowlist or argument, a bad
-`--list-claims` file, or a missing foundation in strict mode.
+`--list-claims` or `--write-audit-list` value, or a missing foundation in strict mode.
 
 ```bash
 DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs
 DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs --list-claims=usage.md
+DOC_CLAIMS_REQUIRE_FOUNDATION=1 node check-doc-claims.mjs --write-audit-list=usage.md
 ```
 
 **Verification markers** `doc-audit-verified.txt`: read by the `make-doc` skill, not by any script
@@ -240,9 +247,10 @@ Seven offline test files, no credentials, no network:
   a mini foundation and synthetic doc pages built in a temp dir (never the live foundation): the
   six real past drift cases at exact `file:line`, corrected versions, runtime-created and
   kit-module rules, placeholder paths, stale `make exec|run` limits, `resolveFoundationPath()`,
-  allowlist / `[known-drift]` behaviour, strict mode and `--list-claims`.
+  allowlist / `[known-drift]` behaviour, strict mode, `--list-claims` and `--write-audit-list`
+  (columns, directory creation, overwrite, rejected values, lenient mode, zero-claim page).
 
-`npm test` should always report `pass 144, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 152, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
