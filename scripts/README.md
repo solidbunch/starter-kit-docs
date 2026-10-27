@@ -166,8 +166,9 @@ meanings; wrong paths in prose without backticks; paths inside fenced blocks (th
 relative paths with no known prefix (`web/wp-core/`); argument handling of targets other than
 `exec` / `run`; a variable that the foundation mentions only in a comment (it counts as found).
 Those stay with the `make-doc` skill (claim list, running commands, cold read). Its "Verified test
-recipes" section has self-cleaning Docker scripts for behaviour checks, and its "Known pitfalls"
-section lists the behavioural mistakes already seen, with the code lines to read.
+recipes" section points to the self-cleaning Docker scripts for behaviour checks in `recipes/*.sh`, and its
+"Known pitfalls" section points to `known-pitfalls.md`, which lists the behavioural mistakes already
+seen, with the code lines to read.
 
 **Foundation lookup order**: `FOUNDATION_PATH` (used alone; a relative value resolves against the
 repo root), else `../starter-kit-foundation.loc` next to this checkout, else the same sibling next
@@ -316,7 +317,11 @@ Nine offline test files, no credentials, no network:
   run. Convention: the full-arguments token occurs exactly once, on the line
   `**Arguments:** <token>`, and the positional digit tokens (a dollar sign followed by a digit,
   braced or not) are forbidden everywhere; describe arguments in words, the backslash escape is not
-  used. A failure names the offending line numbers. Covers `make-doc` only.
+  used. A failure names the offending line numbers. It also guards the recipe scripts in
+  `recipes/*.sh` (no published ports, prune, `container_name` or `ports:`; `--pull=never` and
+  `pull_policy: never`; `trap cleanup EXIT`; `bash -n`), that every supporting file SKILL.md names
+  exists, and that every in-file anchor link in SKILL.md resolves to a heading. Covers `make-doc`
+  only.
 - `test/make-doc-gate.test.mjs` — `make-doc-gate.mjs` as a child process against a synthetic docs
   root and a mini foundation (not a git repo) in temp dirs, with a temp allowlist (never the real
   one): links and anchors (file, anchor, emoji heading), excluded terms, live hosts, converter
@@ -324,7 +329,7 @@ Nine offline test files, no credentials, no network:
   TSV-despite-exit-1, claims failure not stopping the other checks, KNOWN DRIFT and WARN lines, the
   foundation line, and the missing-node_modules setup failure.
 
-`npm test` should always report `pass 168, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 174, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via

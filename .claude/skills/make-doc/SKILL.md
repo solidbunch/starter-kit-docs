@@ -330,48 +330,16 @@ A scratch project is a file-only copy of the foundation. No container is ever st
 - `git clone --no-hardlinks` copies the files without linking into the foundation, and
   `git remote remove origin` stops a push from the copy from reaching the user's checkout.
 
-Save this script in the scratchpad and run it once with `bash`, with `FOUNDATION` set to the
-foundation path and `SCRATCH` to the scratchpad directory. It prints the copy path and its
-`APP_NAME`; those are the values for the step 9 slot.
-
-```bash
-set -eu
-: "${FOUNDATION:?set FOUNDATION to the foundation checkout path}"
-: "${SCRATCH:?set SCRATCH to the scratchpad directory}"
-ID="skdoc-$(date +%s)-$$-$RANDOM"
-COPY="$SCRATCH/$ID"
-git clone -q --no-hardlinks "$FOUNDATION" "$COPY"
-git -C "$COPY" remote remove origin
-DIRTY="$(git --no-optional-locks -C "$FOUNDATION" status --porcelain)"
-if [ -n "$DIRTY" ]; then
-  echo "uncommitted foundation changes not in the scratch project:"
-  echo "$DIRTY"
-fi
-ENVMAIN="$COPY/config/environment/.env.main"
-sed "s/^APP_NAME=.*/APP_NAME=$ID/" "$ENVMAIN" > "$ENVMAIN.tmp" && mv "$ENVMAIN.tmp" "$ENVMAIN"
-cp "$COPY/sh/env/.env.secret.template" "$COPY/config/environment/.env.secret"
-echo "COPY=$COPY"
-echo "APP_NAME=$ID"
-```
+Run `recipes/scratch-project.sh` once with `bash`, with `FOUNDATION` set to the foundation path and
+`SCRATCH` to the scratchpad directory. It prints the copy path and its `APP_NAME`; those are the
+values for the step 9 slot.
 
 The unique `APP_NAME` makes every container name that `docker compose config` prints start with the
 ID. The `TF_VAR_*` lines in `.env.main` interpolate it too.
 
-**Teardown.** After the cold read and any command of your own, run this with `SCRATCH` set and
-`COPY` set to the printed path. No container was started, so there is nothing else to remove.
-
-```bash
-set -eu
-: "${SCRATCH:?set SCRATCH to the scratchpad directory}"
-: "${COPY:?set COPY to the printed scratch project path}"
-case "$COPY" in
-  *..*|"$SCRATCH"/skdoc-*/*) echo "refusing to remove $COPY"; exit 1 ;;
-  "$SCRATCH"/skdoc-*) ;;
-  *) echo "refusing to remove $COPY"; exit 1 ;;
-esac
-rm -rf "$COPY"
-test ! -e "$COPY" && echo "scratch project removed"
-```
+**Teardown.** After the cold read and any command of your own, run `recipes/scratch-teardown.sh`
+with `bash`, with `SCRATCH` set and `COPY` set to the printed path. No container was started, so
+there is nothing else to remove.
 
 ### 4. Reconcile
 
@@ -502,7 +470,7 @@ returns guesses about terms and values, and the commands lists may be empty). It
 review.
 
 1. Fill the scratch-project slot. If the doc has a command that the scratch project's allowlist
-   (step 3, "Providing a scratch project") could run, run the scratch-project script and use its
+   (step 3, "Providing a scratch project") could run, run `recipes/scratch-project.sh` and use its
    output: the value is the copy's path, its `APP_NAME`, and the sentence "allowed there: make env
    [<type>], bash sh/env/init.sh [<type>], docker compose config, read-only git, reading files".
    Otherwise the value is `none prepared`. That is also the value when the doc has no such command
@@ -598,7 +566,7 @@ the current area, a new file, an allowlist entry, an unknown foundation path.
 
 ## Verified test recipes
 
-Three self-cleaning scripts for behaviour that needs Docker. They are for the main agent, never for
+Four self-cleaning scripts for behaviour that needs Docker. They are for the main agent, never for
 the cold-read agent, and they sit beside the scratch project, not inside it. Every recipe:
 
 - is one script, saved in the scratchpad and run once with `bash <script>`, so that `trap cleanup
@@ -615,232 +583,36 @@ the cold-read agent, and they sit beside the scratch project, not inside it. Eve
 - never runs a prune or any other daemon-wide command.
 
 Executed on 2026-10-27 against `ghcr.io/solidbunch/starter-kit-mariadb:11.8.9-noble` and
-`alpine:latest`; the results are quoted in "Known pitfalls".
+`alpine:latest`; the results are quoted in [Known pitfalls](#known-pitfalls).
 
-### Recipe A: single-image behaviour test (`docker run`)
+Files next to this one, in `recipes/`:
 
-Use it to see what one image really does in a given state, for example a MariaDB version guard. Set
-`IMG` to the local image and `SCRATCH` to the scratchpad directory. It starts a fresh database, then
-restarts the same data directory in four states and prints the exit code and log of each: fresh,
-patch-diff (`11.8.8-MariaDB` recorded in `mariadb_upgrade_info`), other-series (`11.4.2-MariaDB`) and
-other-series with `MARIADB_AUTO_UPGRADE=1`. The database files belong to the container user, not to
-the host user, so a helper container (`--entrypoint sh`) edits them and deletes them at the end.
+- `recipes/recipe-a-mariadb-states.sh` (Recipe A): what one image does in a given state, for example
+  a MariaDB version guard. Needs `IMG` and `SCRATCH`; it restarts one data directory in four states
+  (fresh, patch-diff, other-series, other-series with `MARIADB_AUTO_UPGRADE=1`) and prints the exit
+  code and log of each.
+- `recipes/compare-image-guard.sh` (guard in the shipped image against the source): needs `IMG`,
+  `FOUNDATION` (read only) and `SCRATCH`; diffs the guard in the image against the foundation file
+  and prints the image creation time next to the commit time of the last change to that file. An
+  image created before the source commit cannot contain that change; the diff is the proof.
+- `recipes/recipe-b-restart-vs-recreate.sh` (Recipe B): proves that `docker compose restart` keeps
+  the old compose config and `up -d --force-recreate` applies the new one. Needs `SCRATCH`;
+  `BASEIMG` defaults to `alpine:latest` and must be a local image.
+- `recipes/recipe-c-mariadb-probe.sh` (Recipe C): a fresh throwaway container of the shipped image
+  plus an optional SQL file. Needs `IMG` and `SCRATCH`; optional `PROBE_SQL` (a file path) and
+  `EXTRA` (extra `docker run` options such as `-e MARIADB_DATABASE=wordpress`; the script refuses
+  publish, name, network and privileged options). Prints the host OS, file ownership, the SQL output
+  and the last log lines.
+- `recipes/scratch-project.sh` and `recipes/scratch-teardown.sh`: the scratch project (see
+  "Providing a scratch project"); they are not Docker recipes.
 
-```bash
-set -eu
-: "${IMG:?set IMG to a local image, e.g. ghcr.io/solidbunch/starter-kit-mariadb:11.8.9-noble}"
-: "${SCRATCH:?set SCRATCH to the scratchpad directory}"
-docker image inspect "$IMG" > /dev/null 2>&1 || { echo "image $IMG is not available locally, aborting"; exit 1; }
-ID="mdtest-$(date +%s)-$$-$RANDOM"
-DATA="$SCRATCH/$ID"
-helper() { docker run --rm --pull=never -v "$DATA:/d" --entrypoint sh "$IMG" -c "$*"; }
-cleanup() {
-  for NAME in $(docker ps -a --filter "name=^$ID" --format '{{.Names}}'); do
-    docker rm -f "$NAME" > /dev/null 2>&1 || true
-  done
-  if [ -d "$DATA" ]; then
-    helper 'find /d -mindepth 1 -delete' > /dev/null 2>&1 || true
-    rm -rf "$DATA"
-  fi
-}
-trap cleanup EXIT
-trap 'exit 1' INT TERM HUP
-mkdir -p "$DATA"
-
-run_state() {
-  # inputs: LABEL (state name) and EXTRA (more docker run options, may be empty)
-  NAME="$ID-$LABEL"
-  docker run -d --pull=never --name "$NAME" -v "$DATA:/var/lib/mysql" \
-    -e MARIADB_ROOT_PASSWORD=scratch $EXTRA "$IMG" > /dev/null
-  for TRY in $(seq 1 60); do
-    STATUS="$(docker inspect -f '{{.State.Status}}' "$NAME")"
-    [ "$STATUS" = "exited" ] && break
-    docker exec "$NAME" healthcheck.sh --connect --innodb_initialized > /dev/null 2>&1 && break
-    sleep 2
-  done
-  STATUS="$(docker inspect -f '{{.State.Status}}' "$NAME")"
-  if [ "$STATUS" = "exited" ]; then
-    echo "[$LABEL] container exited with code $(docker inspect -f '{{.State.ExitCode}}' "$NAME")"
-  else
-    echo "[$LABEL] container started and answers the healthcheck"
-  fi
-  docker logs "$NAME" 2>&1 | tail -n 6 | sed 's/^/    /'
-  docker rm -f "$NAME" > /dev/null
-}
-
-LABEL=fresh; EXTRA=""
-run_state
-echo "recorded version after the fresh start: $(helper 'cat /d/mariadb_upgrade_info')"
-
-helper "printf '11.8.8-MariaDB\n' > /d/mariadb_upgrade_info"
-LABEL=patch-diff; EXTRA=""
-run_state
-
-helper "printf '11.4.2-MariaDB\n' > /d/mariadb_upgrade_info"
-LABEL=other-series; EXTRA=""
-run_state
-
-helper "printf '11.4.2-MariaDB\n' > /d/mariadb_upgrade_info"
-LABEL=auto-upgrade; EXTRA="-e MARIADB_AUTO_UPGRADE=1"
-run_state
-echo "recipe A finished; cleanup removes the containers and $DATA"
-```
-
-#### Guard in the shipped image against the source
-
-A published image can be older than the source that the doc describes, and the file diff is the only
-proof either way. Set `IMG`, `FOUNDATION` (the foundation checkout, read only) and `SCRATCH`. The
-script copies the guard out of the image (the path comes from `dockerfiles/mariadb/Dockerfile:12`,
-`COPY ... docker-entrypoint.d/`), diffs it against the foundation file, and prints the image creation
-time next to the commit time of the last change to that file.
-
-```bash
-set -eu
-: "${IMG:?set IMG to a local image, e.g. ghcr.io/solidbunch/starter-kit-mariadb:11.8.9-noble}"
-: "${FOUNDATION:?set FOUNDATION to the foundation checkout path (read only)}"
-: "${SCRATCH:?set SCRATCH to the scratchpad directory}"
-docker image inspect "$IMG" > /dev/null 2>&1 || { echo "image $IMG is not available locally, aborting"; exit 1; }
-ID="cmptest-$(date +%s)-$$-$RANDOM"
-WORK="$SCRATCH/$ID"
-GUARD=dockerfiles/mariadb/docker-entrypoint.d/10-version-guard.sh
-cleanup() { rm -rf "$WORK"; }
-trap cleanup EXIT
-trap 'exit 1' INT TERM HUP
-mkdir -p "$WORK"
-docker run --rm --pull=never --entrypoint sh "$IMG" -c 'cat /docker-entrypoint.d/10-version-guard.sh' > "$WORK/guard.image.sh"
-if diff "$WORK/guard.image.sh" "$FOUNDATION/$GUARD" > "$WORK/guard.diff"; then
-  echo "guard in the image is identical to the source"
-else
-  echo "guard in the image DIFFERS from the source:"
-  cat "$WORK/guard.diff"
-fi
-echo "image created:      $(docker image inspect --format '{{.Created}}' "$IMG")"
-echo "source last change: $(git --no-optional-locks -C "$FOUNDATION" log -1 --format='%h %cI' -- "$GUARD")"
-```
-
-Read the result like this: an image created **before** the source commit cannot contain that change;
-an image created after it proves nothing by itself; the diff is the proof.
-
-### Recipe B: compose `restart` against `up -d --force-recreate`
-
-Use it to prove that `docker compose restart` keeps the old compose config and a recreate applies
-the new one. It writes a throwaway compose file (one `sleep` service, no `container_name`, no
-`ports:`), changes the command from 300 to 301, and prints the command of the container after
-`restart` and after `up -d --force-recreate`. Set `SCRATCH`; `BASEIMG` defaults to `alpine:latest`
-and must be a local image.
-
-```bash
-set -eu
-: "${SCRATCH:?set SCRATCH to the scratchpad directory}"
-BASEIMG="${BASEIMG:-alpine:latest}"
-docker image inspect "$BASEIMG" > /dev/null 2>&1 || { echo "image $BASEIMG is not available locally, aborting"; exit 1; }
-ID="cmptest-$(date +%s)-$$-$RANDOM"
-DIR="$SCRATCH/$ID"
-FILE="$DIR/compose.yml"
-cleanup() {
-  docker compose --project-name "$ID" -f "$FILE" down -v --remove-orphans > /dev/null 2>&1 || true
-  for CID in $(docker ps -aq --filter "label=com.docker.compose.project=$ID"); do
-    docker rm -f "$CID" > /dev/null 2>&1 || true
-  done
-  for NID in $(docker network ls -q --filter "label=com.docker.compose.project=$ID"); do
-    docker network rm "$NID" > /dev/null 2>&1 || true
-  done
-  for VID in $(docker volume ls -q --filter "label=com.docker.compose.project=$ID"); do
-    docker volume rm "$VID" > /dev/null 2>&1 || true
-  done
-  rm -rf "$DIR"
-}
-trap cleanup EXIT
-trap 'exit 1' INT TERM HUP
-mkdir -p "$DIR"
-
-write_compose() {
-  # input: SECS (the sleep length that identifies the config version)
-  cat > "$FILE" <<EOF
-services:
-  probe:
-    image: $BASEIMG
-    pull_policy: never
-    entrypoint: []
-    command: ["sleep","$SECS"]
-EOF
-}
-show_command() {
-  CID="$(docker compose --project-name "$ID" -f "$FILE" ps -q probe)"
-  echo "$LABEL: $(docker inspect -f '{{json .Config.Cmd}}' "$CID")"
-}
-
-SECS=300
-write_compose
-docker compose --project-name "$ID" -f "$FILE" up -d > /dev/null 2>&1
-LABEL="after up -d"
-show_command
-
-SECS=301
-write_compose
-docker compose --project-name "$ID" -f "$FILE" restart > /dev/null 2>&1
-LABEL="after restart (file now says 301)"
-show_command
-
-docker compose --project-name "$ID" -f "$FILE" up -d --force-recreate > /dev/null 2>&1
-LABEL="after up -d --force-recreate"
-show_command
-echo "recipe B finished; cleanup runs down -v and removes $DIR"
-```
+Run them with `bash <file>`.
 
 ## Known pitfalls
 
-Checklist of mistakes that a real audit made. For each item, check the thing named and read the
-lines named; the lines are paths in the foundation checkout as of 2026-10-27 and drift, so re-derive
-them with `grep -n` on every run.
-
-1. **`make restart` does not apply edited compose config; `make recreate` does.** Before a doc says
-   that a changed compose file or env value takes effect after a restart, check which command it names.
-   - Code: `Makefile:132-134` (`restart` runs `init.sh`, then `docker compose ... restart`) and
-     `Makefile:136-138` (`recreate` runs `init.sh`, then `docker compose ... up -d --force-recreate`).
-   - The behaviour itself is Docker's, not foundation code. Evidence: Recipe B, executed on
-     2026-10-27 (Docker Compose v5.6.0): the command was `["sleep","300"]` after `up -d`,
-     `["sleep","300"]` after `restart` although the file said 301, and `["sleep","301"]` after
-     `up -d --force-recreate`.
-2. **`make up`, `make recreate` and `make restart` without an environment word fall back to
-   `APP_DEFAULT_ENV_TYPE` and regenerate `.env`.** Before a doc shows one of them, check that it
-   passes the environment type when the doc means a non-default one.
-   - `sh/env/init.sh:14` sources `.env.main`; `:18` sets the type to `APP_DEFAULT_ENV_TYPE`;
-     `:21-22` replace it with the first argument when one is given; `:32` and `:40` rewrite
-     `.env.runtime` and `.env` every time.
-   - `config/environment/.env.main:31` sets `APP_DEFAULT_ENV_TYPE=local`.
-   - `Makefile:111-116` (`up`), `:132-134` (`restart`) and `:136-138` (`recreate`) run `init.sh` with
-     the words after the target.
-3. **`make exec` and `make run` read only three words: mode, service, user.** Before a doc gives one
-   of them extra words, check that the extra words are not silently dropped.
-   - `Makefile:166-172` passes the words to `sh/dev/run.sh`.
-   - `sh/dev/run.sh:13-14` takes the mode from the first word, `:19-20` the service from the second
-     (`:25` maps `wp` to `php`), `:30-33` the user from the third, defaulting to `DEFAULT_USER`.
-4. **An image published under an existing tag is not re-pulled and can be older than the source.**
-   Before a doc says that a guard, flag or default exists "in the image", compare the image with the
-   source (the comparison script above) instead of reading the source alone.
-   - `docker-compose.yml:4` is `image: "${APP_DATABASE_IMAGE}"`, no `docker-compose*.yml` file sets
-     `pull_policy`, and `config/environment/.env.main:39` pins the tag
-     `ghcr.io/solidbunch/starter-kit-mariadb:11.8.9-noble`.
-   - Evidence: the comparison, executed on 2026-10-27. The guard in the local image differs from
-     `dockerfiles/mariadb/docker-entrypoint.d/10-version-guard.sh` (the image compares the full
-     `x.y.z`, the source compares `major.minor`). The image was created
-     `2026-10-24T22:48:35Z`; the commit that changed the guard is `291d8e1`, `2026-10-25T15:15:42Z`.
-     Recipe A confirmed it: the shipped image refused the patch-diff state (`11.8.8` data with the
-     `11.8.9` image, exit code 1), which the source guard would let through; other-series data was
-     refused too, and `MARIADB_AUTO_UPGRADE=1` started it.
-5. **WordPress picks its own collation when `WP_DB_COLLATE` is empty.** Before a doc names the
-   collation of a new install, check what an empty value leads to.
-   - `docker-compose.yml:50` passes `WP_DB_COLLATE` with an empty default;
-     `web/wp-config/wp-config.php:76` defines `DB_COLLATE` from it with an empty default.
-   - `web/wp-core/wp-includes/class-wpdb.php:881` (`determine_charset`): an empty collation becomes
-     `utf8mb4_unicode_ci` (`:893`), and that becomes `utf8mb4_unicode_520_ci` (`:900-901`) when the
-     server supports it. `web/wp-core` is not tracked, so it is absent from a scratch project.
-6. **`WP_DEBUG_LOG` goes to a file only on local and dev.** Before a doc says where debug output
-   ends up, check the environment type it describes.
-   - `config/environment/.env.type.local:45` and `.env.type.dev:48` set
-     `/var/log/wordpress/debug.log`; `.env.type.stage:48` and `.env.type.prod:48` set `/dev/stderr`.
-   - `web/wp-config/wp-config.php:142` defines `WP_DEBUG_LOG` from the variable.
+Checklist of mistakes that a real audit made, kept in [known-pitfalls.md](known-pitfalls.md) next
+to this file. Read it before verifying claims (step 2); it names six mistakes with the code lines to
+read for each.
 
 ## House style (already established in this repo — follow it, don't replace it)
 
