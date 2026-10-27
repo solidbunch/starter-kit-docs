@@ -19,7 +19,8 @@ copy-pasted into WordPress pages at `starter-kit.loc/docs/`.
   sync script (see `scripts/README.md` and
   `.claude/plans/architect-plan-docs-sync-script-stage1.md`) plus the two pre-commit checkers,
   `check-title-drift.mjs` and `check-doc-claims.mjs` (whose `--write-audit-list=<doc>.md` writes
-  `make-doc` claim lists to the gitignored `.claude/doc-audit/`). Has its own `package.json` and
+  `make-doc` claim lists to the gitignored `.claude/doc-audit/`), and `make-doc-gate.mjs`, the
+  zero-token mechanical gate of the `make-doc` skill (not a hook). Has its own `package.json` and
   `node_modules/` (gitignored). Not a doc page — `scripts/` stays out of `index.md`'s TOC.
 
 ## Where plans/decisions live

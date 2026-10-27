@@ -221,6 +221,64 @@ commit the area's docs were last fully verified against. The skill uses it to de
 a request like "update docs from the latest commits" must cover; an area without a line is
 treated as never audited.
 
+## make-doc gate
+
+`node make-doc-gate.mjs` (run from `scripts/`) is the zero-token mechanical gate of the `make-doc`
+skill. It does not replace the pre-commit hook; the hook is unchanged. One line per item
+(`PASS`, `FAIL` or `WARN`, then the check name), exit `1` if any line is a `FAIL`. Every check runs
+even when an earlier one failed.
+
+```bash
+node make-doc-gate.mjs --init                       # save the converter-warning baseline
+node make-doc-gate.mjs --compare-baseline [--scope-docs=a.md,b.md]
+node make-doc-gate.mjs --claims=database-management.md --claims=troubleshooting.md:315-390
+```
+
+Common options: `--docs-root=<dir>` (default: the repo root), `--allowlist=<file>` (passed to
+`check-doc-claims.mjs`, default: its own allowlist). Env: `FOUNDATION_PATH` (passed through),
+`MAKE_DOC_GATE_NODE_MODULES` (tests: the node_modules directory to check).
+
+- **setup** (every mode, first): `<scripts>/node_modules/markdown-it` must exist, else
+  `FAIL setup: scripts/node_modules missing — run (cd scripts && npm ci)` and exit 1, nothing else
+  runs. The gate's own static imports are `node:` builtins only, because the libs it needs load
+  `markdown-it`.
+- **foundation line**: `foundation: <path> @ <sha> (clean|dirty)`, or `(not a git repo)` when the
+  checkout is not a git repo, or `FAIL foundation: not found (...)`. Same lookup as the claims
+  check.
+- **`--init`**: prints the foundation line and writes the converter baseline to
+  `<docs-root>/.claude/doc-audit/converter-baseline.json` (gitignored):
+  `{ "<file>": ["<warning text without file:line>", ...] }`.
+- **`--compare-baseline`**:
+  - `claims`: `check-doc-claims.mjs` as a child process, strict
+    (`DOC_CLAIMS_REQUIRE_FOUNDATION=1`). The output is parsed even when the exit code is 1.
+    `PASS claims: <N> verified (strict), <D> known drift`; one `FAIL claims:` per failure line;
+    stdout `WARN` lines become `WARN claims:`, each KNOWN DRIFT entry `WARN known-drift:`.
+  - `title-drift`: the same check as `check-title-drift.mjs` (shared `lib/title-drift.mjs`).
+  - `converter`: converter warnings (which `check-title-drift.mjs` never prints) against the
+    baseline, per file as a multiset with the line numbers removed, so a warning that only moved is
+    not new. No baseline file is a FAIL ("run --init before editing").
+  - `links`: every relative `*.md` link in `index.md` and its pages must resolve to a file, and its
+    `#anchor` to a heading slug of the target (`lib/links.mjs`; lowercase, keep letters, digits,
+    space, `-`, `_`; duplicates get `-1`, `-2`; leading hyphens are ignored, so emoji headings match
+    with or without one). Bare `#anchor` links are checked against the same file.
+  - `excluded-terms`: `is_demo`, `starter-kit-addon`, `stripe` (whole word), `docs-publisher`,
+    `skt/v1`, case-insensitive, over `index.md` and its pages.
+  - `live-hosts`: any `starter-kit.io` host except `licensing.starter-kit.io` and the bare
+    `starter-kit.io` (no subdomain, no path other than `/`, with or without the scheme).
+  - `versions` (WARN only): `x.y.z` literals in `--scope-docs` (default: all pages) that appear
+    nowhere under the foundation's `config/environment`, `dockerfiles`, `docker-compose*.yml` or
+    `.github`. Four-part numbers (IP addresses) are ignored.
+- **`--claims=<doc>[:<from>-<to>]`** (repeatable): one `check-doc-claims.mjs --list-claims=<doc>`
+  run per doc; rows whose line is in the range go to
+  `<docs-root>/.claude/doc-audit/<doc>.claims.tsv` (`location kind value status`, no `raw`
+  column). Written even when the checker exited 1. Prints
+  `wrote <path> (<n> claims, <f> not verified, lines a-b)`; `<f>` counts rows with status `fail`.
+  Only the claim check runs in this mode.
+
+The parser depends on the checker's output shape (the `WARN` prefix, the TSV header, the KNOWN
+DRIFT and failure blocks on stderr, the success line); `test/make-doc-gate.test.mjs` runs the real
+checker, so a change there fails `npm test`.
+
 ## Tests
 
 ```bash
@@ -228,7 +286,7 @@ cd scripts && npm test
 # equivalent: node --test
 ```
 
-Eight offline test files, no credentials, no network:
+Nine offline test files, no credentials, no network:
 
 - `test/manifest.test.mjs` — manifest parsing/ordering (`index.md`'s 19 entries, in order, with
   matching slugs), the `tocTitle`/`line` fields, plus the link-target/file-existence error paths.
@@ -259,8 +317,14 @@ Eight offline test files, no credentials, no network:
   `**Arguments:** <token>`, and the positional digit tokens (a dollar sign followed by a digit,
   braced or not) are forbidden everywhere; describe arguments in words, the backslash escape is not
   used. A failure names the offending line numbers. Covers `make-doc` only.
+- `test/make-doc-gate.test.mjs` — `make-doc-gate.mjs` as a child process against a synthetic docs
+  root and a mini foundation (not a git repo) in temp dirs, with a temp allowlist (never the real
+  one): links and anchors (file, anchor, emoji heading), excluded terms, live hosts, converter
+  baseline (new vs shifted warning, missing baseline), version WARN, `--claims` range and
+  TSV-despite-exit-1, claims failure not stopping the other checks, KNOWN DRIFT and WARN lines, the
+  foundation line, and the missing-node_modules setup failure.
 
-`npm test` should always report `pass 154, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 168, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
