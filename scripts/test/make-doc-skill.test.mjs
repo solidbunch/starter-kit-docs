@@ -171,3 +171,64 @@ test('make-doc SKILL.md: every in-file anchor link resolves to a heading', () =>
   const dangling = anchors.filter((a) => !slugs.has(a.anchor)).map((a) => `line ${a.line}: #${a.anchor}`);
   assert.deepEqual(dangling, [], `anchor links without a heading:\n  ${dangling.join('\n  ')}`);
 });
+
+// --- Denylist consistency and size cap ------------------------------------------------------------
+//
+// The Hard denylist section is the source. The "Denylist one-liner" block (pasted into prompts W and
+// V) and the Prompt N block (which contains the one-liner) must name every denylisted command, so
+// that the prompts cannot drift from the denylist.
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// First fenced block after the first non-fenced line matching `labelRe`.
+function fencedBlockAfter(labelRe) {
+  let inFence = false;
+  let found = false;
+  const block = [];
+  for (const text of lines) {
+    const isFence = /^\s*```/.test(text);
+    if (!found) {
+      if (isFence) inFence = !inFence;
+      else if (!inFence && labelRe.test(text)) found = true;
+      continue;
+    }
+    if (isFence) {
+      if (inFence) return block.join('\n');
+      inFence = true;
+      continue;
+    }
+    if (inFence) block.push(text);
+  }
+  return null;
+}
+
+test('make-doc SKILL.md: the denylist one-liner and Prompt N name every denylisted command', () => {
+  const start = lines.findIndex((text) => /^#+\s+Hard denylist\b/.test(text));
+  assert.ok(start >= 0, 'no "Hard denylist" heading found in SKILL.md');
+  const end = lines.findIndex((text, index) => index > start && text.startsWith('Why:'));
+  assert.ok(end > start, 'no line starting with "Why:" after the Hard denylist heading');
+  const section = lines.slice(start, end).join('\n');
+
+  const items = new Set([...section.matchAll(/`(make [^`]+)`/g)].map((match) => match[1].trim()));
+  if (/docker \.\.\. prune/.test(section)) items.add('prune');
+  assert.ok(items.size >= 14, `expected at least 14 denylist items, parsed ${items.size}: ${[...items].join(', ')}`);
+
+  const oneLiner = fencedBlockAfter(/Denylist one-liner/);
+  const promptN = fencedBlockAfter(/^#+\s+Prompt N\b/);
+  assert.ok(oneLiner, 'no fenced block after the "Denylist one-liner" label');
+  assert.ok(promptN, 'no fenced block after the "Prompt N" heading');
+
+  const missing = [];
+  for (const item of items) {
+    const re = new RegExp(`${escapeRegExp(item)}(?![\\w-])`);
+    if (!re.test(oneLiner)) missing.push(`one-liner lacks "${item}"`);
+    if (!re.test(promptN)) missing.push(`Prompt N lacks "${item}"`);
+  }
+  assert.deepEqual(missing, [], `denylist drift:\n  ${missing.join('\n  ')}`);
+  assert.ok(promptN.includes(oneLiner.trim()), 'Prompt N must contain the Denylist one-liner text verbatim');
+});
+
+test('make-doc SKILL.md: at most 400 lines', () => {
+  const count = readFileSync(SKILL_PATH, 'utf8').replace(/\n$/, '').split('\n').length;
+  assert.ok(count <= 400, `SKILL.md has ${count} lines; the cap is 400 (move text to a supporting file)`);
+});

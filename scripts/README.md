@@ -165,7 +165,7 @@ real errors of the MariaDB trial run were all behavioural. In detail: default va
 meanings; wrong paths in prose without backticks; paths inside fenced blocks (they show what a command creates); non-negated
 relative paths with no known prefix (`web/wp-core/`); argument handling of targets other than
 `exec` / `run`; a variable that the foundation mentions only in a comment (it counts as found).
-Those stay with the `make-doc` skill (claim list, running commands, cold read). Its "Verified test
+Those stay with the `make-doc` skill (writer, verifier and newcomer agents, recipes). Its "Verified test
 recipes" section points to the self-cleaning Docker scripts for behaviour checks in `recipes/*.sh`, and its
 "Known pitfalls" section points to `known-pitfalls.md`, which lists the behavioural mistakes already
 seen, with the code lines to read.
@@ -199,7 +199,7 @@ allowlist exits 1 with `doc-claims-allowlist.txt:<n>: ...`.
 `--list-claims[=<file.md>]` (after the normal checks, print one tab-separated line per claim with
 `location kind value status raw`, passing ones included; `unverified` without a foundation; a
 file that is not a scanned page exits 1), `--write-audit-list=<file.md>` (write that page's claims as
-a `make-doc` audit table, columns `doc:line | claim | checker | ground truth path:line | audit status |
+a claim-audit table (the `make-doc` skill no longer uses it; it uses the gate's `--claims` TSV), columns `doc:line | claim | checker | ground truth path:line | audit status |
 notes`, to `<docs-root>/.claude/doc-audit/<page>.claims.md`; the directory is created and the file
 overwritten on every run; it is written even when the run exits 1, `unverified` rows without a
 foundation in lenient mode, nothing in strict mode without one; prints `wrote <path> (<n> claims)`;
@@ -320,8 +320,9 @@ Nine offline test files, no credentials, no network:
   used. A failure names the offending line numbers. It also guards the recipe scripts in
   `recipes/*.sh` (no published ports, prune, `container_name` or `ports:`; `--pull=never` and
   `pull_policy: never`; `trap cleanup EXIT`; `bash -n`), that every supporting file SKILL.md names
-  exists, and that every in-file anchor link in SKILL.md resolves to a heading. Covers `make-doc`
-  only.
+  exists, that every in-file anchor link in SKILL.md resolves to a heading, that the Denylist
+  one-liner block and the Prompt N block name every command of the Hard denylist, and that SKILL.md
+  has at most 400 lines. Covers `make-doc` only.
 - `test/make-doc-gate.test.mjs` — `make-doc-gate.mjs` as a child process against a synthetic docs
   root and a mini foundation (not a git repo) in temp dirs, with a temp allowlist (never the real
   one): links and anchors (file, anchor, emoji heading), excluded terms, live hosts, converter
@@ -329,7 +330,7 @@ Nine offline test files, no credentials, no network:
   TSV-despite-exit-1, claims failure not stopping the other checks, KNOWN DRIFT and WARN lines, the
   foundation line, and the missing-node_modules setup failure.
 
-`npm test` should always report `pass 174, fail 0, skipped 0` — zero skips, since none of these
+`npm test` should always report `pass 176, fail 0, skipped 0` — zero skips, since none of these
 tests hold credentials or touch the network.
 
 **Byte-level verification against the live endpoint now happens via `npm run sync:dry`**, not via
