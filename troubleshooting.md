@@ -316,7 +316,8 @@ df -h                     # Overall disk usage
 
 Run the commands in this section from the root of your project (the folder with the `Makefile` and
 `docker-compose.yml`). `<env>` is your environment type (`local`, `dev`, `stage` or `prod`), the same
-value you pass to `make up`.
+value you pass to `make up`. If you leave it out, `make` uses `APP_DEFAULT_ENV_TYPE` from
+`config/environment/.env.main` (`local` by default).
 
 ### `mariadb` keeps restarting with `[version-guard] ERROR`
 
@@ -353,10 +354,11 @@ If you changed `APP_DATABASE_IMAGE` to a different `major.minor` and `mariadb` s
   docker inspect --format '{{.Config.Image}}' $(docker compose ps -q mariadb)
   ```
 
-- `MARIADB_AUTO_UPGRADE` is empty or `0`. Check your shell (`echo "$MARIADB_AUTO_UPGRADE"`) and
-  `.env.secret` (`grep MARIADB_AUTO_UPGRADE config/environment/.env.secret`).
-- `db-data/mysql` exists (`ls db-data/mysql`). An empty `db-data` counts as a fresh install and is
-  never guarded.
+- `MARIADB_AUTO_UPGRADE` is empty or `0` (any other value turns the guard off). Check your shell (`echo "$MARIADB_AUTO_UPGRADE"`) and
+  `.env.secret` (`grep '^MARIADB_AUTO_UPGRADE' config/environment/.env.secret` prints nothing when
+  the line is commented out, which is the template default).
+- `db-data/mysql` exists (`sudo ls db-data/mysql`; on Linux the files belong to the container's `mysql` user).
+  An empty `db-data` counts as a fresh install and is never guarded.
 
 ### Crash recovery failed: Bad magic header in tc log
 
@@ -369,7 +371,8 @@ If you changed `APP_DATABASE_IMAGE` to a different `major.minor` and `mariadb` s
 [ERROR] Aborting
 ```
 
-**Cause:** Corrupted `tc.log` (Transaction Coordinator Log) file.
+**Cause:** Corrupted `tc.log` (Transaction Coordinator Log) file. The error is in the container log
+(`docker compose logs mariadb`).
 
 **Solution (safe if you don't use XA transactions):**
 
